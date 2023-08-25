@@ -1,18 +1,10 @@
 import React from 'react'
 import BaseWidget from '@/class/BaseWidegt'
 import Button from './component'
+import { WidgetProps } from '@/interface/widget'
 
-export interface ButtonWidgetProps  {
-  text: string;
-  isDisabled: boolean;
-  isVisible: boolean;
-  buttonColor: string,
-  buttonVariant: string,
-  placement: string,
-  iconAlign: string,
-  iconName: string,
-  borderRadius: string,
-  boxShadow: string,
+export interface ButtonWidgetProps extends WidgetProps  {
+  [propsName:string]:any
 }
 
 export interface ButtonWidgetState  {
@@ -28,7 +20,7 @@ export default class ButtonWidget extends BaseWidget<ButtonWidgetProps,ButtonWid
   }
 
 
-  /** 获取widget组件*/
+  /** 获取widget组件Dom*/
   getPageView() {
     const {
       text, isDisabled, isVisible, buttonColor,

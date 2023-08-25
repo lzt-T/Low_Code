@@ -13,7 +13,9 @@ export default function Index() {
         <LeftSidebar />
       </div>
       <div style={{
-        flex: '1'
+        flex: '1',
+        display: 'flex',
+        justifyContent:"center"
       }}>
         <Editor />
       </div>

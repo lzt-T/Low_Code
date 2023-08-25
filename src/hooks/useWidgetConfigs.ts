@@ -1,5 +1,8 @@
 import { useAppSelector } from './redux'
 
+/**
+* @description  获取全部的widgets
+*/
 export default function useWidgetConfigs() {
   const widgetConfigs = useAppSelector((state) => state.widgetConfigs.configs)
   

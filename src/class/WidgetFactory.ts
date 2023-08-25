@@ -10,44 +10,26 @@ export default class WidgetFactory {
   static widgetConfigMap: Map<
     string,
     any
-    > = new Map()
-  
+  > = new Map()
+
+
   /**
-    * 注册widget
-    * @param widgetType widget类型
-    * @param widgetBuilder 组件类
-    */
+  * @description注册widget
+  * @param widgetType widget类型
+  * @param widgetBuilder 组件类
+  */
   static registerWidgetBuilder(
     widgetType: string,
     widgetBuilder: any,
-    features?: any,
   ) {
     if (!this.widgetTypes[widgetType]) {
       this.widgetTypes[widgetType] = widgetType
       this.widgetMap.set(widgetType, widgetBuilder)
-
-
-      // if (propertyPaneContentConfig) {
-
-      //   this.propertyPaneContentConfigsMap.set(
-      //     widgetType,
-      //     propertyPaneContentConfig
-
-      //   )
-      // }
-
-      // if (propertyPaneStyleConfig) {
-
-      //   this.propertyPaneStyleConfigsMap.set(
-      //     widgetType,
-      //     propertyPaneStyleConfig,
-      //   )
-      // }
     }
   }
 
   /**
- * 保存widget配置
+ * @description 保存widget配置
  * @param widgetType widget类型
  * @param config widget配置
  */
@@ -56,6 +38,28 @@ export default class WidgetFactory {
     config: any
   ) {
     this.widgetConfigMap.set(widgetType, Object.freeze(config))
+  }
+
+  /**
+ * 从上到下创建widgets
+ */
+  static createWidget(
+    widgetData: any,
+    renderMode: string,
+  ) {
+    const widgetProps = {
+      key: widgetData.widgetId,
+      isVisible: true,
+      ...widgetData,
+      renderMode,
+    }
+
+    const widgetBuilder = this.widgetMap.get(widgetData.type)
+    if (widgetBuilder) {
+      return widgetBuilder.buildWidget(widgetProps)
+    } else {
+      return null
+    }
   }
 
 }

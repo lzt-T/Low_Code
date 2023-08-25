@@ -8,13 +8,10 @@ interface WidgetCardProps {
 export default function WidgetCard(props: WidgetCardProps) {
   const { icon, displayName } = props.details
 
-  console.log(props.details);
-  
   return (
     <>
       <div style={{
-        height:'200px'
-
+        height:'100%'
       }}>
         <img src={icon} alt={''} />
         <div>{displayName}</div>

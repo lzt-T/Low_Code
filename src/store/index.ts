@@ -1,9 +1,19 @@
-import { configureStore } from '@reduxjs/toolkit'
+import { combineReducers, configureStore } from '@reduxjs/toolkit'
 import widgetConfigReducer from './slices/widgetConfigSlice'
+import canvasWidgetsStructureReducer from './slices/canvasWidgetsStructureSlice'
+import mainCanvasReducer from './slices/mainCanvasSlice'
+
+
+const uiReducer = combineReducers({
+  mainCanvas: mainCanvasReducer,
+})
+
 
 const store = configureStore({
   reducer: {
     widgetConfigs: widgetConfigReducer,
+    canvasWidgetsStructure: canvasWidgetsStructureReducer,
+    ui: uiReducer,
   },
 })
 
