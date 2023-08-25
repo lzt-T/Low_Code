@@ -1,11 +1,10 @@
 import { useState } from 'react'
+import Index from '@/pages/index'
 import './App.css'
 
 function App() {
   return (
-    <>
-     欢迎来到低代码
-    </>
+    <Index />
   )
 }
 
