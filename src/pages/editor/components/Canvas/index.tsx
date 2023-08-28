@@ -19,7 +19,6 @@ export default function Canvas(props: CanvasProps) {
           height: '100%',
         }
       }>
-        <div>渲染内容：</div>
         {
           widgetsStructure.widgetId &&
           WidgetFactory.createWidget(

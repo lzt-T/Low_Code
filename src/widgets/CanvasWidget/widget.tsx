@@ -47,17 +47,8 @@ export default class CanvasWidget extends ContainerWidget {
     )
     height = snapRows * GridDefaults.DEFAULT_GRID_ROW_HEIGHT
 
-    const style: React.CSSProperties = {
-      width: '100%',
-      height: `${height}px`,
-      background: 'none',
-      position: 'relative'
-    }
-
     return (
-      <div style={style}>
-        {this.renderAsContainerComponent(this.getCanvasProps())}
-      </div>
+      this.renderAsContainerComponent(this.getCanvasProps())
     )
   }
 

@@ -16,8 +16,7 @@ export const GridDefaults = {
   MAIN_CANVAS_EXTENSION_OFFSET: 8,
 }
 
-
-/** 画布默认padding   6*/
+/** 画布默认padding 6*/
 export const CONTAINER_GRID_PADDING = GridDefaults.DEFAULT_GRID_ROW_HEIGHT * 0.6
 
 export type RenderMode =

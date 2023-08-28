@@ -21,7 +21,8 @@ export default function Editor() {
   return (
     <>
       <div style={{
-        height: "100vh"
+        height: "100vh",
+        position:'relative'
       }}>
         {isLoad &&
           <Canvas

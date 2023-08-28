@@ -3,9 +3,11 @@ import widgetConfigReducer from './slices/widgetConfigSlice'
 import canvasWidgetsStructureReducer from './slices/canvasWidgetsStructureSlice'
 import mainCanvasReducer from './slices/mainCanvasSlice'
 import canvasWidgetsReducer from './slices/canvasWidgets'
+import dragResizeReducer from "./slices/dragResize"
 
 
 const uiReducer = combineReducers({
+  dragResize: dragResizeReducer,
   mainCanvas: mainCanvasReducer,
 })
 

@@ -1,7 +1,7 @@
 import React from "react"
 import { ReactNode } from 'react'
 import ContainerComponent from './component'
-import BaseWidget from "@/widgets/BaseWidegt"
+import BaseWidget from "@/widgets/components/BaseWidegt"
 import { WidgetProps } from "@/interface/widget";
 import { CONTAINER_GRID_PADDING, GridDefaults, MAIN_CONTAINER_WIDGET_ID } from "@/constant/canvas";
 import { WIDGET_PADDING } from "@/constant/widget";
@@ -26,15 +26,15 @@ class ContainerWidget extends BaseWidget<ContainerWidgetProps, ContainerWidgetSt
   /*** 获取画布单元格的宽高值*/
   getSnapSpaces = () => {
     const { componentWidth } = this.getComponentDimensions()
-    let padding = (CONTAINER_GRID_PADDING + WIDGET_PADDING) * 2  //20
-    if (
-      this.props.widgetId === MAIN_CONTAINER_WIDGET_ID ||
-      this.props.type === "CONTAINER_WIDGET"
-    ) {
-      padding = CONTAINER_GRID_PADDING * 2  //12
-    }
-    let width = componentWidth
-    width -= padding
+    // let padding = (WIDGET_PADDING) * 2  //20
+    // if (
+    //   this.props.widgetId === MAIN_CONTAINER_WIDGET_ID ||
+    //   this.props.type === "CONTAINER_WIDGET"
+    // ) {
+    //   padding = CONTAINER_GRID_PADDING * 2  //12
+    // }
+    let width = componentWidth- (WIDGET_PADDING) * 2
+    // width -= (WIDGET_PADDING) * 2
 
     return {
       snapRowSpace: GridDefaults.DEFAULT_GRID_ROW_HEIGHT, //10

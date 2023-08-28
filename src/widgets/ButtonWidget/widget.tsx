@@ -1,5 +1,5 @@
 import React from 'react'
-import BaseWidget from '@/widgets/BaseWidegt'
+import BaseWidget from '@/widgets/components/BaseWidegt'
 import Button from './component'
 import { WidgetProps } from '@/interface/widget'
 

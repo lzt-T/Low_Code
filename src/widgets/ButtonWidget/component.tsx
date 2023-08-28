@@ -10,14 +10,12 @@ export default function MdButton(props: MdButtonProps) {
     text
   } = props
 
-  useEffect(() => {
-    console.log(props);
-
-  }, [])
-
+  
   return (
     <>
       <div style={{
+        height: '100%',
+        width:'100%',
         background: 'red'
       }}>{text}</div>
     </>

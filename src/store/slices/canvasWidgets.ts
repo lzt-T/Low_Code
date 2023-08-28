@@ -1,15 +1,25 @@
 //画布中widget的值
-import { CANVAS_DEFAULT_MIN_ROWS, MAIN_CONTAINER_WIDGET_ID, RenderModes } from "@/constant/canvas"
+import { CANVAS_DEFAULT_MIN_ROWS, GridDefaults, MAIN_CONTAINER_WIDGET_ID, RenderModes } from "@/constant/canvas"
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit"
 import { RootState } from ".."
 
 
-const initialState: any = {
+const initialState: {
+  [propName: string]: {
+    topRow: number,
+    bottomRow: number,
+    leftColumn: number,
+    rightColumn: number,
+    parentColumnSpace:number,
+    parentRowSpace:number,
+    [propNams:string]:any
+  }
+} = {
   0: {
     type: "CANVAS_WIDGET",
     widgetId: MAIN_CONTAINER_WIDGET_ID,
     topRow: 0,
-    bottomRow: CANVAS_DEFAULT_MIN_ROWS,
+    bottomRow: CANVAS_DEFAULT_MIN_ROWS * GridDefaults.DEFAULT_GRID_ROW_HEIGHT, //380
     renderMode: RenderModes.CANVAS,
     canExtend: true,
     widgetName: "MainContainer",
@@ -17,7 +27,7 @@ const initialState: any = {
     parentColumnSpace: 1,
     parentRowSpace: 1,
     leftColumn: 0,
-    rightColumn: 450,
+    rightColumn: 375,
     version: 1,
     isLoading: false,
     children: ['temp_button_widget_id'],
@@ -33,7 +43,7 @@ const initialState: any = {
     parentId: '0',
     type: 'BUTTON_WIDGET',
     widgetName: 'Button Widget',
-    renderMode: "CANVAS",
+    renderMode: RenderModes.CANVAS,
     isDisabled: false,
     version: 1,
     isLoading: false,
