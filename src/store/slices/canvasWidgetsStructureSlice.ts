@@ -1,3 +1,5 @@
+
+/** 画布中的widget结构*/
 import { createSlice } from '@reduxjs/toolkit'
 import { pick } from "lodash"
 import { RootState } from "@/store"
@@ -31,7 +33,13 @@ const initialState: { dsl: any } = {
     topRow: 0,
     //因为主画布的父亲单位长度为 1 
     bottomRow: CANVAS_DEFAULT_MIN_ROWS * GridDefaults.DEFAULT_GRID_ROW_HEIGHT,
-    children: [],
+    children: [{
+      parentId: MAIN_CONTAINER_WIDGET_ID,
+      bottomRow: 10,
+      topRow: 4,
+      type: "BUTTON_WIDGET",
+      widgetId: "temp_button_widget_id"
+    }],
   }
 }
 

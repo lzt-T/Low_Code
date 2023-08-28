@@ -1,11 +1,11 @@
 import React from "react"
 import { ReactNode } from 'react'
 import ContainerComponent from './component'
-import BaseWidget from "@/class/BaseWidegt"
+import BaseWidget from "@/widgets/BaseWidegt"
 import { WidgetProps } from "@/interface/widget";
 import { CONTAINER_GRID_PADDING, GridDefaults, MAIN_CONTAINER_WIDGET_ID } from "@/constant/canvas";
 import { WIDGET_PADDING } from "@/constant/widget";
-import WidgetFactory from "@/class/WidgetFactory";
+import WidgetFactory from "@/widgets/WidgetFactory";
 import { compact, map, sortBy } from "lodash"
 import { getCanvasSnapRows } from "@/utils/WidgetPropsUtils";
 

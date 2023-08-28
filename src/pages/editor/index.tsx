@@ -3,27 +3,32 @@ import { getCanvasWidgetDsl } from '@/store/slices/canvasWidgetsStructureSlice'
 import Canvas from './components/Canvas'
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { getCanvasWidth } from '@/selectors/editorSelectors';
+import WidgetFactory from '@/widgets/WidgetFactory';
 
 export default function Editor() {
-
   const widgetsStructure = useAppSelector(getCanvasWidgetDsl);
   const canvasWidth = useAppSelector(getCanvasWidth)
 
-  let nodeList: React.ReactNode = useMemo(() => {
-    return <Canvas
-      canvasWidth={canvasWidth}
-      widgetsStructure={widgetsStructure}
-    />
-  }, [widgetsStructure])
+  /** 组件是否注册完成*/
+  const [isLoad, setIsLoad] = useState(false);
 
+  useEffect(() => {
+    if (WidgetFactory.widgetBuilderMap.size === WidgetFactory.widgetNum && isLoad === false) {
+      setIsLoad(true)
+    }
+  }, [WidgetFactory.widgetBuilderMap.size, isLoad])
 
   return (
     <>
       <div style={{
         height: "100vh"
       }}>
-        <div>下面是选阿兰</div>
-        {nodeList}
+        {isLoad &&
+          <Canvas
+            canvasWidth={canvasWidth}
+            widgetsStructure={widgetsStructure}
+          />
+        }
       </div>
     </>
   )

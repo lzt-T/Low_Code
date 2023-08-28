@@ -2,6 +2,7 @@ import { combineReducers, configureStore } from '@reduxjs/toolkit'
 import widgetConfigReducer from './slices/widgetConfigSlice'
 import canvasWidgetsStructureReducer from './slices/canvasWidgetsStructureSlice'
 import mainCanvasReducer from './slices/mainCanvasSlice'
+import canvasWidgetsReducer from './slices/canvasWidgets'
 
 
 const uiReducer = combineReducers({
@@ -13,6 +14,7 @@ const store = configureStore({
   reducer: {
     widgetConfigs: widgetConfigReducer,
     canvasWidgetsStructure: canvasWidgetsStructureReducer,
+    canvasWidgets: canvasWidgetsReducer,
     ui: uiReducer,
   },
 })

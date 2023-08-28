@@ -1,12 +1,15 @@
-
-
 export default class WidgetFactory {
+  /** 注册组件数量*/
+  static widgetNum: number = 0;
   static widgetTypes: Record<string, string> = {}
-  static widgetMap: Map<
+
+  /** 创建组件map*/
+  static widgetBuilderMap: Map<
     string,
     any
   > = new Map()
 
+  /** 组件信息，比如default，大小位置等等*/
   static widgetConfigMap: Map<
     string,
     any
@@ -24,7 +27,7 @@ export default class WidgetFactory {
   ) {
     if (!this.widgetTypes[widgetType]) {
       this.widgetTypes[widgetType] = widgetType
-      this.widgetMap.set(widgetType, widgetBuilder)
+      this.widgetBuilderMap.set(widgetType, widgetBuilder)
     }
   }
 
@@ -54,7 +57,8 @@ export default class WidgetFactory {
       renderMode,
     }
 
-    const widgetBuilder = this.widgetMap.get(widgetData.type)
+    const widgetBuilder = this.widgetBuilderMap.get(widgetData.type)
+    
     if (widgetBuilder) {
       return widgetBuilder.buildWidget(widgetProps)
     } else {

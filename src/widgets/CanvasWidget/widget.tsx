@@ -1,4 +1,4 @@
-import WidgetFactory from "@/class/WidgetFactory";
+import WidgetFactory from "@/widgets/WidgetFactory";
 import ContainerWidget from "../ContainerWidget";
 import { getCanvasSnapRows } from "@/utils/WidgetPropsUtils";
 import { GridDefaults } from "@/constant/canvas";
@@ -56,7 +56,6 @@ export default class CanvasWidget extends ContainerWidget {
 
     return (
       <div style={style}>
-        <div>canvas</div>
         {this.renderAsContainerComponent(this.getCanvasProps())}
       </div>
     )
