@@ -1,6 +1,6 @@
 //画布中widget的值
 import { CANVAS_DEFAULT_MIN_ROWS, GridDefaults, MAIN_CONTAINER_WIDGET_ID, RenderModes } from "@/constant/canvas"
-import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit"
+import { createSelector, createSlice } from "@reduxjs/toolkit"
 import { RootState } from ".."
 
 
@@ -10,9 +10,9 @@ const initialState: {
     bottomRow: number,
     leftColumn: number,
     rightColumn: number,
-    parentColumnSpace:number,
-    parentRowSpace:number,
-    [propNams:string]:any
+    parentColumnSpace: number,
+    parentRowSpace: number,
+    [propNams: string]: any
   }
 } = {
   0: {
@@ -48,7 +48,7 @@ const initialState: {
     version: 1,
     isLoading: false,
     text: '按钮文字',
-    parentColumnSpace: 10,
+    parentColumnSpace: (375 - 8) / 64,
     parentRowSpace: 10,
     detachFromLayout: false,
     isVisible: false,
@@ -86,6 +86,19 @@ export const getWidgetByIdSelector = (widgetId: string) => {
     getWidgetsSelector,
     (canvasWidgets: any) => {
       return canvasWidgets[widgetId]
+    }
+  )
+}
+
+/**
+ * @description 获取widget的子孩子id列表
+ * @param widgetId
+ */
+export const getWidgetChildrenSelector = (widgetId: string) => {
+  return createSelector(
+    getWidgetsSelector,
+    (canvasWidgets: any): string[] => {
+      return canvasWidgets[widgetId].children
     }
   )
 }

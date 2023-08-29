@@ -33,6 +33,8 @@ export default function getWidgetComponent(Component: any) {
   return (props: any) => {
     let widgetProps = { children: {} }
     const { widgetId, children } = props;
+
+    //获取保存在redux中widget值
     const canvasWidget = useAppSelector(getWidgetByIdSelector(widgetId))
 
     const canvasWidgetProps = (() => {
@@ -40,7 +42,6 @@ export default function getWidgetComponent(Component: any) {
       //   // 统计根据实际画布宽度，计算根画布的rightColumn
       //   return computeMainContainerWidget(canvasWidget, mainCanvasProps)
       // }
-
       return canvasWidget
     })()
 

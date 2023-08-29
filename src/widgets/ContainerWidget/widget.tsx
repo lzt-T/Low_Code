@@ -33,7 +33,7 @@ class ContainerWidget extends BaseWidget<ContainerWidgetProps, ContainerWidgetSt
     // ) {
     //   padding = CONTAINER_GRID_PADDING * 2  //12
     // }
-    let width = componentWidth- (WIDGET_PADDING) * 2
+    let width = componentWidth - (WIDGET_PADDING) * 2
     // width -= (WIDGET_PADDING) * 2
 
     return {
@@ -43,30 +43,30 @@ class ContainerWidget extends BaseWidget<ContainerWidgetProps, ContainerWidgetSt
   }
 
   renderChildWidget(childWidgetData: WidgetProps): ReactNode {
+    
     const childWidget = { ...childWidgetData }
 
-    const { componentHeight, componentWidth } = this.getComponentDimensions()
+    // const { componentHeight, componentWidth } = this.getComponentDimensions()
+    // childWidget.rightColumn = componentWidth
+    // childWidget.bottomRow = this.props.shouldScrollContents
+    //   ? childWidget.bottomRow
+    //   : componentHeight
+    // childWidget.minHeight = componentHeight
+    // childWidget.shouldScrollContents = false
+    // childWidget.canExtend = this.props.shouldScrollContents
 
-    childWidget.rightColumn = componentWidth
-    childWidget.bottomRow = this.props.shouldScrollContents
-      ? childWidget.bottomRow
-      : componentHeight
-    childWidget.minHeight = componentHeight
-    childWidget.shouldScrollContents = false
-    childWidget.canExtend = this.props.shouldScrollContents
-
-    childWidget.parentId = this.props.widgetId
+    // childWidget.parentId = this.props.widgetId;
+ 
 
     return WidgetFactory.createWidget(childWidget, this.props.renderMode)
   }
 
   renderChildren() {
     const that = this
-    return map(
-      sortBy(compact(this.props.children), (child:any) => child.topRow),
-      (data) => {
-        return that.renderChildWidget(data)
-      },
+    /** 将孩子按照topRow从小到大排序*/
+    return map(sortBy(compact(this.props.children), (child: any) => child.topRow), (data) => {  
+      return that.renderChildWidget(data)
+    },
     )
   }
 

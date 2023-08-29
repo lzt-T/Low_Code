@@ -1,7 +1,7 @@
 import { useAppSelector } from '@/hooks/redux'
 import { getCanvasWidgetDsl } from '@/store/slices/canvasWidgetsStructureSlice'
 import Canvas from './components/Canvas'
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { getCanvasWidth } from '@/selectors/editorSelectors';
 import WidgetFactory from '@/widgets/WidgetFactory';
 
@@ -22,13 +22,12 @@ export default function Editor() {
     <>
       <div style={{
         height: "100vh",
-        position:'relative'
+        position: 'relative'
       }}>
-        {isLoad &&
-          <Canvas
-            canvasWidth={canvasWidth}
-            widgetsStructure={widgetsStructure}
-          />
+        {isLoad && <Canvas
+          canvasWidth={canvasWidth}
+          widgetsStructure={widgetsStructure}
+        />
         }
       </div>
     </>

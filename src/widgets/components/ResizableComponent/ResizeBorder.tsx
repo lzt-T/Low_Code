@@ -10,13 +10,18 @@ import {
   TopLeftBorderStyles,
   TopRightBorderStyles
 } from './ResizeableStyle'
-
+import ResizableHandle from './ResizableHandle'
 
 interface ResizeBorderProps {
-
+  /** 开始调整大小*/
+  onResizeStart: () => void
+  /** 停止调整大小*/
+  onResizeStop:()=>void
 }
 
 export default function ResizeBorder(props: ResizeBorderProps) {
+  const { onResizeStart,onResizeStop } = props;
+
   const [borderList, setBorderList] = useState([])
   const allBorders: Record<string, any> = useMemo(() => {
     return {
@@ -31,47 +36,47 @@ export default function ResizeBorder(props: ResizeBorderProps) {
     }
   }, [])
 
-
+  /** 设置边框dom*/
   useEffect(() => {
     let list: any = [];
     if (allBorders.topBorderEle) {
       list.push({
-        component: allBorders.topBorderEle,
+        Component: allBorders.topBorderEle,
       })
     }
     if (allBorders.bottomBorderEle) {
       list.push({
-        component: allBorders.bottomBorderEle,
+        Component: allBorders.bottomBorderEle,
       })
     }
     if (allBorders.leftBorderEle) {
       list.push({
-        component: allBorders.leftBorderEle,
+        Component: allBorders.leftBorderEle,
       })
     }
     if (allBorders.rightBorderEle) {
       list.push({
-        component: allBorders.rightBorderEle,
+        Component: allBorders.rightBorderEle,
       })
     }
     if (allBorders.topLeftBorderEle) {
       list.push({
-        component: allBorders.topLeftBorderEle,
+        Component: allBorders.topLeftBorderEle,
       })
     }
     if (allBorders.topRightBorderEle) {
       list.push({
-        component: allBorders.topRightBorderEle,
+        Component: allBorders.topRightBorderEle,
       })
     }
     if (allBorders.bottomLeftBorderEle) {
       list.push({
-        component: allBorders.bottomLeftBorderEle,
+        Component: allBorders.bottomLeftBorderEle,
       })
     }
     if (allBorders.bottomRightBorderEle) {
       list.push({
-        component: allBorders.bottomRightBorderEle,
+        Component: allBorders.bottomRightBorderEle,
       })
     }
 
@@ -83,9 +88,12 @@ export default function ResizeBorder(props: ResizeBorderProps) {
       {
         borderList.map((item: any, ind: number) => {
           return (
-            <div key={ind}>
-              <item.component />
-            </div>
+            <ResizableHandle
+              Component={item.Component}
+              onStart={onResizeStart}
+              onStop={onResizeStop}
+              key={ind}
+            />
           )
         })
       }

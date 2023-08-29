@@ -3,6 +3,9 @@ export const MAIN_CONTAINER_WIDGET_ID = "0"
 /** 画布最小的行数*/
 export const CANVAS_DEFAULT_MIN_ROWS = 38
 
+/** 画布最小高度*/
+export const CANVAS_DEFAULT_MIN_HEIGHT_PX = 380
+
 export const GridDefaults = {
   DEFAULT_CELL_SIZE: 1,
   DEFAULT_WIDGET_WIDTH: 200,

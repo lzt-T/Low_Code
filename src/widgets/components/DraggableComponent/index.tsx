@@ -1,3 +1,4 @@
+import { WIDGET_PADDING } from '@/constant/widget'
 import { focusWidget } from '@/store/slices/dragResize'
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useDispatch } from 'react-redux'
@@ -15,12 +16,11 @@ export default function DraggableComponent(props: DraggableComponentProps) {
     if (!props.resizeDisabled) {
       dispatch(focusWidget(props.widgetId))
     }
-  },[props])
+  }, [props])
 
   return (
     <div
       style={{
-        display: 'block',
         width: '100%',
         height: '100%',
       }}

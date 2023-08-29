@@ -4,7 +4,6 @@ import React, { Component, ReactNode } from 'react'
 import PositionedContainer from '../PositionedContainer';
 import ResizableComponent from '../ResizableComponent';
 import DraggableComponent from '../DraggableComponent';
-import { WIDGET_PADDING } from '@/constant/widget';
 
 
 

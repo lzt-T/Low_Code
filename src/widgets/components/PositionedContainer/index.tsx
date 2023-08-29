@@ -39,9 +39,9 @@ export default function PositionedContainer(props: PositionedContainer) {
       left,
       height: componentHeight,
       width: componentWidth,
-      // backgroundColor: "yellow",
+      /** 添加padding*/
       padding: `${WIDGET_PADDING}px`,
-      boxSizing:'border-box',
+      boxSizing: 'border-box',
     }
     return style
 

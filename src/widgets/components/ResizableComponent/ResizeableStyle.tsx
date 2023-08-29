@@ -1,3 +1,4 @@
+import { WIDGET_PADDING } from "@/constant/widget";
 import styled, { css } from "styled-components"
 
 const EDGE_RESIZE_HANDLE_WIDTH = 6
@@ -16,8 +17,8 @@ const VerticalBorderStyles: any = css<{
   showLightBorder: boolean;
 }>`
   position: absolute;
-  top: ${0 - EDGE_RESIZE_HANDLE_WIDTH/2}px;
-  height: calc(100% + ${EDGE_RESIZE_HANDLE_WIDTH}px);
+  top: ${0 - WIDGET_PADDING}px;
+  height: calc(100% + ${WIDGET_PADDING * 2}px);
   width:${EDGE_RESIZE_HANDLE_WIDTH}px;
   ${(props) => (!props.showAsBorder ? "cursor: col-resize;" : "")}
 
@@ -28,11 +29,11 @@ const VerticalBorderStyles: any = css<{
     top: 0;
     width: 1px;
     background: ${(props) => {
-      if (props.showLightBorder) return theme.colors.widgetLightBorder
-  
-      if (props.showAsBorder) return theme.colors.widgetMultiSelectBorder
-      return theme.colors.widgetBorder
-    }};
+    if (props.showLightBorder) return theme.colors.widgetLightBorder
+
+    if (props.showAsBorder) return theme.colors.widgetMultiSelectBorder
+    return theme.colors.widgetBorder
+  }};
   }
 
   &::after {
@@ -66,11 +67,11 @@ const HorizontalBorderStyles: any = css<{
     left: 0px;
     height: 1px;
     background: ${(props) => {
-      if (props.showLightBorder) return theme.colors.widgetLightBorder
-  
-      if (props.showAsBorder) return theme.colors.widgetMultiSelectBorder
-      return theme.colors.widgetBorder
-    }};
+    if (props.showLightBorder) return theme.colors.widgetLightBorder
+
+    if (props.showAsBorder) return theme.colors.widgetMultiSelectBorder
+    return theme.colors.widgetBorder
+  }};
   }
 
   &::after {
@@ -98,10 +99,10 @@ const CornerHandleStyles = css`
 export const LeftBorderStyles = styled.div`
   ${VerticalBorderStyles};
   &::before {
-    left: -50%;
+    left: -${WIDGET_PADDING}px;
   }
   &::after {
-    left: -${EDGE_RESIZE_HANDLE_WIDTH}px;
+    left: -${EDGE_RESIZE_HANDLE_WIDTH + 1}px;
   }
 `
 
@@ -110,11 +111,11 @@ export const RightBorderStyles = styled.div`
   right: 0px;
 
   &::before {
-    right: -50%;
+    right: -${WIDGET_PADDING}px;
   }
 
   &::after {
-    right: -${EDGE_RESIZE_HANDLE_WIDTH}px;
+    right: -${EDGE_RESIZE_HANDLE_WIDTH + 1}px;
   }
 `
 
@@ -122,10 +123,10 @@ export const TopBorderStyles = styled.div`
   ${HorizontalBorderStyles};
   top: 0px;
   &:before {
-    top: -50%;
+    top:  -${WIDGET_PADDING}px;
   }
    &::after {
-    top:-${EDGE_RESIZE_HANDLE_WIDTH}px;
+    top:-${EDGE_RESIZE_HANDLE_WIDTH + 1}px;
   }
 `
 
@@ -133,10 +134,10 @@ export const BottomBorderStyles = styled.div`
   ${HorizontalBorderStyles};
   bottom: 0px;
   &:before {
-    bottom: -50%;
+    bottom:  -${WIDGET_PADDING}px;
   }
    &::after {
-    top:${EDGE_RESIZE_HANDLE_WIDTH}px;
+    top:${EDGE_RESIZE_HANDLE_WIDTH + 1}px;
   }
 `
 

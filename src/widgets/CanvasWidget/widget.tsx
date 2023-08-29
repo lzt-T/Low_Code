@@ -1,7 +1,8 @@
 import WidgetFactory from "@/widgets/WidgetFactory";
 import ContainerWidget from "../ContainerWidget";
 import { getCanvasSnapRows } from "@/utils/WidgetPropsUtils";
-import { GridDefaults } from "@/constant/canvas";
+import { CANVAS_DEFAULT_MIN_HEIGHT_PX, GridDefaults } from "@/constant/canvas";
+import DropTargetComponent from "../components/DropTargetComponent";
 
 
 export default class CanvasWidget extends ContainerWidget {
@@ -21,6 +22,24 @@ export default class CanvasWidget extends ContainerWidget {
     }
   }
 
+  /** 渲染容器内容拖拽时的经纬图*/
+  renderAsDropTarget() {
+    const canvasProps = this.getCanvasProps()
+    /** 画布单元格的宽高值*/
+    const snapSpace=this.getSnapSpaces()
+
+    return (
+      <DropTargetComponent
+        {...canvasProps}
+        snapColumnSpace={snapSpace.snapColumnSpace}
+        snapRowSpace={snapSpace.snapRowSpace}
+        minHeight={this.props.minHeight || CANVAS_DEFAULT_MIN_HEIGHT_PX}
+      >
+        {this.renderAsContainerComponent(canvasProps)}
+      </DropTargetComponent>
+    )
+  }
+
 
   /**
    * 选择画布子部件
@@ -29,15 +48,15 @@ export default class CanvasWidget extends ContainerWidget {
   renderChildWidget(childWidgetData: any): React.ReactNode {
     if (!childWidgetData) return null
 
-    const childWidget = { ...childWidgetData }
-    const snapSpaces = this.getSnapSpaces()
-
-    childWidget.parentColumnSpace = snapSpaces.snapColumnSpace
-    childWidget.parentRowSpace = snapSpaces.snapRowSpace
-    // 如果容器没有pad，则子组件计算位置时去掉offset
-    if (this.props.noPad) childWidget.noContainerOffset = true
-    childWidget.parentId = this.props.widgetId
-    return WidgetFactory.createWidget(childWidget, this.props.renderMode)
+    /** 从redux中获取的props中有了*/
+    // const childWidget = { ...childWidgetData }
+    // const snapSpaces = this.getSnapSpaces()
+    // childWidget.parentColumnSpace = snapSpaces.snapColumnSpace
+    // childWidget.parentRowSpace = snapSpaces.snapRowSpace
+    // // 如果容器没有pad，则子组件计算位置时去掉offset
+    // if (this.props.noPad) childWidget.noContainerOffset = true
+    // childWidget.parentId = this.props.widgetId
+    return WidgetFactory.createWidget(childWidgetData, this.props.renderMode)
   }
 
   getPageView() {
@@ -53,9 +72,9 @@ export default class CanvasWidget extends ContainerWidget {
   }
 
   getCanvasView() {
-    // if (!this.props.dropDisabled) {
-    //   return this.renderAsDropTarget()
-    // }
+    if (!this.props.dropDisabled) {
+      return this.renderAsDropTarget()
+    }
 
     return this.getPageView()
   }
