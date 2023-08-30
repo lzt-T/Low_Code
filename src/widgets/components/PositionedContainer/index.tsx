@@ -1,4 +1,7 @@
 import { WIDGET_PADDING } from '@/constant/widget';
+import { useAppSelector } from '@/hooks/redux';
+import { getReflowByIdSelector } from '@/store/slices/widgetReflowSlice';
+import equal from "fast-deep-equal"
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 
 interface PositionedContainer {
@@ -22,6 +25,9 @@ export default function PositionedContainer(props: PositionedContainer) {
     componentHeight, componentWidth
   } = props;
 
+  /** 在reflow中的样式*/
+  const reflowedPosition = useAppSelector(getReflowByIdSelector(widgetId), equal)
+
 
   const top = useMemo(() => {
     return topRow * parentRowSpace
@@ -37,15 +43,15 @@ export default function PositionedContainer(props: PositionedContainer) {
       position: 'absolute',
       top,
       left,
-      height: componentHeight,
-      width: componentWidth,
+      height: reflowedPosition?.height || componentHeight,
+      width: reflowedPosition?.width || componentWidth,
       /** 添加padding*/
       padding: `${WIDGET_PADDING}px`,
       boxSizing: 'border-box',
     }
     return style
 
-  }, [top, left, componentHeight, componentWidth])
+  }, [top, left, componentHeight, componentWidth, reflowedPosition])
 
   return (
     <>

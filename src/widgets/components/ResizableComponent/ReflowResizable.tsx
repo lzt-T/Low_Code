@@ -1,11 +1,10 @@
 import React, { useCallback, useMemo, useRef } from "react"
 import { get, omit } from "lodash"
 import { WidgetProps } from "@/interface/widget"
+import { animated, useSpring } from 'react-spring'
 import ResizeBorder from "./ResizeBorder"
 import { WIDGET_PADDING } from "@/constant/widget"
 import { useResize } from "@/hooks/useResize"
-
-
 
 interface ReflowResizableProps {
   topRow: number,
@@ -23,9 +22,7 @@ export default function ReflowResizable(props: ReflowResizableProps) {
     rightColumn, parentColumnSpace, parentRowSpace, widgetId } = props
   const resizableRef = useRef<any>()
 
-  const { onResizeStart, onResizeStop } = useResize({ widgetId })
-
-  /** widget大小*/
+  /** 原始widget大小*/
   const dimensions: any = useMemo(() => {
     let width = (rightColumn - leftColumn) * parentColumnSpace - 2 * WIDGET_PADDING;
     let height = (bottomRow - topRow) * parentRowSpace - 2 * WIDGET_PADDING;
@@ -36,16 +33,53 @@ export default function ReflowResizable(props: ReflowResizableProps) {
 
   }, [topRow, bottomRow, leftColumn, rightColumn, parentColumnSpace, parentRowSpace])
 
+  const {
+    widgetWidth,
+    widgetHeight,
+    widgetDimension,
+    onResizeStart,
+    onResizeStop,
+    onResizeDrag,
+  } = useResize({
+    widgetId,
+    componentWidth: dimensions.width,
+    componentHeight: dimensions.height,
+  })
+
+
+  //拖动调整大小
+  const styles = useSpring({
+    // 弹簧的基本属性(影响动画的速度、轨迹等)
+    config: { clamp: true, friction: 0, tension: 999, },
+    from: {
+      width: dimensions.width,
+      height: dimensions.height
+    },
+    to: {
+      width: widgetWidth,
+      height: widgetHeight,
+      transform: `translate3d(${widgetDimension.x}px, ${widgetDimension.y}px, 0)`
+    },
+    // 如果为真，则停止动画(直接跳转到结束状态)
+    // immediate: true,
+  })
+
+
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }} ref={resizableRef}>
+    <animated.div style={{ ...styles, position: 'relative' }} ref={resizableRef}>
       {children}
       {enableResize
         &&
         <ResizeBorder
+          {...props}
+          widgetDimension={widgetDimension}
+          dimensions={dimensions}
           onResizeStart={onResizeStart}
           onResizeStop={onResizeStop}
+          onResizeDrag={onResizeDrag}
+          scrollParent={resizableRef.current}
         />
       }
-    </div>
+    </animated.div>
   )
 }

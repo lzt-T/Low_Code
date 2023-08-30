@@ -4,6 +4,7 @@ import canvasWidgetsStructureReducer from './slices/canvasWidgetsStructureSlice'
 import mainCanvasReducer from './slices/mainCanvasSlice'
 import canvasWidgetsReducer from './slices/canvasWidgets'
 import dragResizeReducer from "./slices/dragResize"
+import widgetReflowReducer from "./slices/widgetReflowSlice"
 
 
 const uiReducer = combineReducers({
@@ -17,6 +18,7 @@ const store = configureStore({
     widgetConfigs: widgetConfigReducer,
     canvasWidgetsStructure: canvasWidgetsStructureReducer,
     canvasWidgets: canvasWidgetsReducer,
+    widgetReflow: widgetReflowReducer,
     ui: uiReducer,
   },
 })
