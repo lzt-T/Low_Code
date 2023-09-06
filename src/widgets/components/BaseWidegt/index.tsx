@@ -1,9 +1,9 @@
-import { RenderModes } from '@/constant/canvas';
 import { WidgetProps } from '@/interface/widget';
 import React, { Component, ReactNode } from 'react'
 import PositionedContainer from '../PositionedContainer';
 import ResizableComponent from '../ResizableComponent';
 import DraggableComponent from '../DraggableComponent';
+import { RenderModes } from '@/interface/canvas';
 
 
 

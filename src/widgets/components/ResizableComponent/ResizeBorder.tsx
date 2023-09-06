@@ -13,21 +13,22 @@ import {
 import ResizableHandle from './ResizableHandle'
 import { DimensionProps } from '@/hooks/useResize'
 import { ReflowDirection } from '@/enum/move'
+import { MIN_HEIGHT_ROW, MIN_WIDTH_COLUMN } from '@/constant/widget'
 
 interface ResizeBorderProps {
   widgetDimension: any,
   dimensions: {
     /** 原始宽度*/
     width: number
-     /** 原始高度*/
-    height:number
+    /** 原始高度*/
+    height: number
   }
   /** 开始调整大小*/
   onResizeStart: () => void
   /** 停止调整大小*/
   onResizeStop: () => void
   /** 调整大小的过程*/
-  onResizeDrag: (rect:DimensionProps) => void,
+  onResizeDrag: (rect: any) => void,
   scrollParent: any,
   [propName: string]: any
 }
@@ -36,7 +37,7 @@ export default function ResizeBorder(props: ResizeBorderProps) {
   const {
     onResizeStart, onResizeStop, onResizeDrag,
     parentRowSpace, parentColumnSpace, scrollParent,
-    dimensions,widgetDimension
+    dimensions, widgetDimension
   } = props;
 
   const [borderList, setBorderList] = useState([])
@@ -56,17 +57,15 @@ export default function ResizeBorder(props: ResizeBorderProps) {
   /** 设置边框dom*/
   useEffect(() => {
     let list: any = [];
+    let minHeight = MIN_HEIGHT_ROW * parentRowSpace;
+    let minWidth = MIN_WIDTH_COLUMN * parentColumnSpace;
     if (allBorders.topBorderEle) {
       list.push({
         Component: allBorders.topBorderEle,
         onDrag: (x: number, y: number) => {
-          let height = dimensions.height - y > 0 ? dimensions.height - y : 0;
-          let _y = y >= dimensions.height ? dimensions.height : y;
           onResizeDrag({
-            width: dimensions.width,
-            height,
-            x: 0,
-            y: _y,
+            x,
+            y,
             direction: ReflowDirection.TOP,
           })
         }
@@ -76,15 +75,23 @@ export default function ResizeBorder(props: ResizeBorderProps) {
       list.push({
         Component: allBorders.bottomBorderEle,
         onDrag: (x: number, y: number) => {
-          onResizeDrag()
+          onResizeDrag({
+            x,
+            y,
+            direction: ReflowDirection.BOTTOM,
+          })
         }
       })
     }
     if (allBorders.leftBorderEle) {
       list.push({
         Component: allBorders.leftBorderEle,
-        onDrag: (x: number, y: number) => {
-          onResizeDrag()
+        onDrag: (x: number, y: number) => {   
+          onResizeDrag({
+            x,
+            y,
+            direction: ReflowDirection.LEFT,
+          })
         }
       })
     }
@@ -92,7 +99,11 @@ export default function ResizeBorder(props: ResizeBorderProps) {
       list.push({
         Component: allBorders.rightBorderEle,
         onDrag: (x: number, y: number) => {
-          onResizeDrag()
+          onResizeDrag({
+            x,
+            y,
+            direction: ReflowDirection.RIGHT,
+          })
         }
       })
     }
@@ -100,7 +111,15 @@ export default function ResizeBorder(props: ResizeBorderProps) {
       list.push({
         Component: allBorders.topLeftBorderEle,
         onDrag: (x: number, y: number) => {
-          onResizeDrag()
+          let width = dimensions.width - x > minWidth ? dimensions.width - x : minWidth
+          let height = dimensions.height - y > minHeight ?  dimensions.height - y : minHeight
+          let _x = x > dimensions.width - minWidth ? dimensions.width - minWidth : x;
+          let _y = y > dimensions.height - minHeight ? dimensions.height - minHeight : y;
+          onResizeDrag({
+            x,
+            y,
+            direction: ReflowDirection.TOPLEFT,
+          })
         }
       })
     }
@@ -108,7 +127,14 @@ export default function ResizeBorder(props: ResizeBorderProps) {
       list.push({
         Component: allBorders.topRightBorderEle,
         onDrag: (x: number, y: number) => {
-          onResizeDrag()
+          let width = dimensions.width + x > minWidth ? dimensions.width + x : minWidth
+          let height = dimensions.height - y > minHeight ?  dimensions.height - y : minHeight
+          let _y = y > dimensions.height - minHeight ? dimensions.height - minHeight : y;
+          onResizeDrag({
+            x,
+            y,
+            direction: ReflowDirection.TOPRIGHT,
+          })
         }
       })
     }
@@ -116,7 +142,14 @@ export default function ResizeBorder(props: ResizeBorderProps) {
       list.push({
         Component: allBorders.bottomLeftBorderEle,
         onDrag: (x: number, y: number) => {
-          onResizeDrag()
+          let width = dimensions.width - x > minWidth ? dimensions.width - x : minWidth
+          let height = dimensions.height + y > minHeight ? dimensions.height + y : minHeight
+          let _x = x > dimensions.width - minWidth ? dimensions.width - minWidth : x;
+          onResizeDrag({
+            x,
+            y,
+            direction: ReflowDirection.BOTTOMLEFT,
+          })
         }
       })
     }
@@ -124,13 +157,19 @@ export default function ResizeBorder(props: ResizeBorderProps) {
       list.push({
         Component: allBorders.bottomRightBorderEle,
         onDrag: (x: number, y: number) => {
-          onResizeDrag()
+          let width = dimensions.width + x > minWidth ? dimensions.width + x : minWidth
+          let height = dimensions.height + y > minHeight ? dimensions.height + y : minHeight
+          onResizeDrag({
+            x,
+            y,
+            direction: ReflowDirection.BOTTOMRIGHT,
+          })
         }
       })
     }
 
     setBorderList(list)
-  }, [allBorders,dimensions])
+  }, [allBorders, dimensions])
 
   return (
     <>

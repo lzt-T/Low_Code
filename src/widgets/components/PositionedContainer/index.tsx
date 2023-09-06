@@ -28,7 +28,6 @@ export default function PositionedContainer(props: PositionedContainer) {
   /** 在reflow中的样式*/
   const reflowedPosition = useAppSelector(getReflowByIdSelector(widgetId), equal)
 
-
   const top = useMemo(() => {
     return topRow * parentRowSpace
   }, [topRow, parentRowSpace])
@@ -36,6 +35,23 @@ export default function PositionedContainer(props: PositionedContainer) {
   const left = useMemo(() => {
     return leftColumn * parentColumnSpace
   }, [leftColumn, parentColumnSpace])
+
+
+  /** reflow时的样式*/
+  const reflowedPositionStyles: React.CSSProperties = useMemo(() => {
+    const reflowX = reflowedPosition?.X || 0;
+    const reflowY = reflowedPosition?.Y || 0;   
+
+    if (reflowedPosition) {
+      return {
+        transform: `translate(${reflowX}px,${reflowY}px)`,
+        transition: `transform 100ms linear`,
+        boxShadow: `0 0 0 1px rgba(104,113,239,0.5)`,
+      }
+    } else {
+      return {}
+    }
+  }, [reflowedPosition])
 
 
   const containerStyle: React.CSSProperties = useMemo(() => {
@@ -48,10 +64,11 @@ export default function PositionedContainer(props: PositionedContainer) {
       /** 添加padding*/
       padding: `${WIDGET_PADDING}px`,
       boxSizing: 'border-box',
+      ...reflowedPositionStyles
     }
     return style
 
-  }, [top, left, componentHeight, componentWidth, reflowedPosition])
+  }, [top, left, componentHeight, componentWidth, reflowedPosition, reflowedPositionStyles])
 
   return (
     <>

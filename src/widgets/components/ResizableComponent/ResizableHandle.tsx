@@ -14,20 +14,6 @@ interface ResizableHandleProps {
   scrollParent: any
 }
 
-
-/** 获取当前位置所在单元格的坐标信息*/
-const getSnappedValues = (
-  x: number,
-  y: number,
-  snapGrid: { rowSpace: number; columnSpace: number },
-) => {
-  return {
-    x: Math.round(x / snapGrid.columnSpace) * snapGrid.columnSpace,
-    y: Math.round(y / snapGrid.rowSpace) * snapGrid.rowSpace,
-  }
-}
-
-
 export default function ResizableHandle(props: ResizableHandleProps) {
   const {
     Component,
@@ -38,6 +24,17 @@ export default function ResizableHandle(props: ResizableHandleProps) {
     scrollParent
   } = props
 
+  /** 获取当前位置所在单元格的坐标信息*/
+  const getSnappedValues = useCallback((
+    x: number,
+    y: number,
+    snapGrid: { rowSpace: number; columnSpace: number },
+  ) => {
+    return {
+      x: Math.round(x / snapGrid.columnSpace) * snapGrid.columnSpace,
+      y: Math.round(y / snapGrid.rowSpace) * snapGrid.rowSpace,
+    }
+  }, [])
 
   const bind = useDrag((state: any) => {
     const {

@@ -33,13 +33,58 @@ const initialState: { dsl: any } = {
     topRow: 0,
     //因为主画布的父亲单位长度为 1 
     bottomRow: CANVAS_DEFAULT_MIN_ROWS * GridDefaults.DEFAULT_GRID_ROW_HEIGHT,
-    children: [{
-      parentId: MAIN_CONTAINER_WIDGET_ID,
-      bottomRow: 10,
-      topRow: 4,
-      type: "BUTTON_WIDGET",
-      widgetId: "temp_button_widget_id"
-    }],
+    children: [
+      {
+        parentId: MAIN_CONTAINER_WIDGET_ID,
+        bottomRow: 10,
+        topRow: 4,
+        type: "BUTTON_WIDGET",
+        widgetId: "one"
+      },
+      {
+        parentId: MAIN_CONTAINER_WIDGET_ID,
+        bottomRow: 10,
+        topRow: 4,
+        type: "BUTTON_WIDGET",
+        widgetId: "two"
+      },
+      {
+        parentId: MAIN_CONTAINER_WIDGET_ID,
+        bottomRow: 10,
+        topRow: 4,
+        type: "BUTTON_WIDGET",
+        widgetId: "three"
+      },
+      {
+        parentId: MAIN_CONTAINER_WIDGET_ID,
+        bottomRow: 10,
+        topRow: 4,
+        type: "BUTTON_WIDGET",
+        widgetId: "four"
+      },
+      {
+        parentId: MAIN_CONTAINER_WIDGET_ID,
+        bottomRow: 10,
+        topRow: 4,
+        type: "BUTTON_WIDGET",
+        widgetId: "five"
+      },
+     
+      // {
+      //   parentId: MAIN_CONTAINER_WIDGET_ID,
+      //   bottomRow: 31,
+      //   topRow: 25,
+      //   type: "BUTTON_WIDGET",
+      //   widgetId: "test_two_button_id"
+      // },
+      // {
+      //   parentId: MAIN_CONTAINER_WIDGET_ID,
+      //   bottomRow: 31,
+      //   topRow: 25,
+      //   type: "BUTTON_WIDGET",
+      //   widgetId: "test_three_button_id"
+      // }
+    ],
   }
 }
 

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import ReflowResizable from './ReflowResizable'
 
 interface ResizableComponentProps {
+  parentId?: string;
   topRow: number,
   bottomRow: number
   leftColumn: number,

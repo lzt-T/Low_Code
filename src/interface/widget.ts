@@ -3,6 +3,7 @@ export interface IWidgetConfiguration {
 }
 
 export interface WidgetProps {
+  parentId?: string;
   widgetId: string,
   topRow: number,
   bottomRow: number
@@ -17,4 +18,11 @@ export interface WidgetProps {
   type: string,
   children: string[],
   [propsName: string]: any
+}
+
+export interface WidgetRowCols {
+  topRow: number;
+  bottomRow: number;
+  leftColumn: number;
+  rightColumn: number;
 }

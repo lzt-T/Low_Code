@@ -37,12 +37,12 @@ export const dragResizeSlice = createSlice({
     focusWidget: (state, action: {
       payload: string
     }) => {
-      // if (action.payload === MAIN_CONTAINER_WIDGET_ID) {
-      //   state.curFocusedWidgetId = '';
-      // } else {
-      //   state.curFocusedWidgetId = action.payload
-      // }
-      state.curFocusedWidgetId = 'temp_button_widget_id'
+      if (action.payload === MAIN_CONTAINER_WIDGET_ID) {
+        state.curFocusedWidgetId = '';
+      } else {
+        state.curFocusedWidgetId = action.payload
+      }
+      // state.curFocusedWidgetId = 'temp_button_widget_id'
     },
 
     selectMultipleWidgets: (state, action: PayloadAction<{ widgetIds: string[] }>) => {

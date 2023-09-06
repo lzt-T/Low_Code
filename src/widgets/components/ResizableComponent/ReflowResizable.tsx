@@ -7,6 +7,7 @@ import { WIDGET_PADDING } from "@/constant/widget"
 import { useResize } from "@/hooks/useResize"
 
 interface ReflowResizableProps {
+  parentId?: string;
   topRow: number,
   bottomRow: number
   leftColumn: number,
@@ -19,7 +20,7 @@ interface ReflowResizableProps {
 }
 export default function ReflowResizable(props: ReflowResizableProps) {
   const { enableResize, children, topRow, bottomRow, leftColumn,
-    rightColumn, parentColumnSpace, parentRowSpace, widgetId } = props
+    rightColumn, parentColumnSpace, parentRowSpace, widgetId,parentId } = props
   const resizableRef = useRef<any>()
 
   /** 原始widget大小*/
@@ -41,9 +42,16 @@ export default function ReflowResizable(props: ReflowResizableProps) {
     onResizeStop,
     onResizeDrag,
   } = useResize({
+    leftColumn,
+    rightColumn,
+    topRow,
+    bottomRow,
+    parentId,
     widgetId,
     componentWidth: dimensions.width,
     componentHeight: dimensions.height,
+    parentColumnSpace: parentColumnSpace,
+    parentRowSpace: parentRowSpace,
   })
 
 

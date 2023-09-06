@@ -16,7 +16,8 @@ export default function MdButton(props: MdButtonProps) {
       <div style={{
         height: '100%',
         width:'100%',
-        background: 'red'
+        background: 'red',
+        overflow:'hidden'
       }}>{text}</div>
     </>
   )

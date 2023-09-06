@@ -1,5 +1,9 @@
 import { GridDefaults } from "./canvas"
 
+/** 最小高度占格*/
+export const MIN_HEIGHT_ROW = 2
+export const MIN_WIDTH_COLUMN = 2
+
 /** widget的padding  4*/
 export const WIDGET_PADDING = GridDefaults.DEFAULT_GRID_ROW_HEIGHT * 0.4
 

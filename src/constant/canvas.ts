@@ -21,16 +21,3 @@ export const GridDefaults = {
 
 /** 画布默认padding 6*/
 export const CONTAINER_GRID_PADDING = GridDefaults.DEFAULT_GRID_ROW_HEIGHT * 0.6
-
-export type RenderMode =
-  | "COMPONENT_PANE"
-  | "CANVAS"
-  | "PAGE"
-  | "CANVAS_SELECTED";
-
-export const RenderModes: { [id: string]: RenderMode } = {
-  COMPONENT_PANE: "COMPONENT_PANE",
-  CANVAS: "CANVAS",
-  PAGE: "PAGE",
-  CANVAS_SELECTED: "CANVAS_SELECTED",
-}
