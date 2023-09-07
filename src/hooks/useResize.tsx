@@ -2,11 +2,12 @@ import { isResizingSelector, selectWidget, setWidgetResizing } from "@/store/sli
 import { useCallback, useContext, useEffect, useMemo, useState, useRef } from "react"
 import { useDispatch } from "react-redux"
 import { useAppSelector } from "./redux"
-import { ReflowDirection } from "@/enum/move";
+import { ReSizeDirection, ReflowDirection } from "@/enum/move";
 import { getReflowByIdSelector, setReflowingWidgets, widgetsSpaceGraphSelector } from "@/store/slices/widgetReflowSlice";
 import { MIN_HEIGHT_ROW, MIN_WIDTH_COLUMN, WIDGET_PADDING } from "@/constant/widget";
 import _ from 'lodash'
 import { getWidgetChildrenDetailSelector, getWidgetChildrenSelector, getWidgetsSelector } from "@/store/slices/canvasWidgets";
+import { WidgetRowCols } from "@/interface/widget";
 
 interface UseResizeProps {
   parentId?: string;
@@ -44,20 +45,7 @@ export interface DimensionProps {
   [propName: string]: any
 }
 
-export const DragDirection: Record<ReflowDirection, string> = {
-  [ReflowDirection.TOP]: 'top',
-  [ReflowDirection.BOTTOM]: 'bottom',
-  [ReflowDirection.LEFT]: 'left',
-  [ReflowDirection.RIGHT]: 'right',
-  [ReflowDirection.TOPLEFT]: 'bottom',
-  [ReflowDirection.TOPRIGHT]: 'bottom',
-  [ReflowDirection.BOTTOMLEFT]: 'bottom',
-  [ReflowDirection.BOTTOMRIGHT]: 'bottom',
-  [ReflowDirection.UNSET]: 'UNSET',
-}
-
-
-type Su = {
+type WidgetReSizeInfo = {
   direction: ReflowDirection,
   leftColumn: number
   rightColumn: number,
@@ -67,6 +55,12 @@ type Su = {
   minX: number,
 }
 
+type ReflowData = {
+  [propName: string]: {
+    X: number,
+    Y: number,
+  }
+}
 
 /**
 * @description resize操作
@@ -88,6 +82,7 @@ export const useResize = (props: UseResizeProps) => {
   })
 
   const dispatch = useDispatch()
+  /** 是否正在变化大小*/
   const isResizing = useAppSelector(isResizingSelector)
   /** 在reflow中的样式*/
   const reflowedPosition: any = useAppSelector(getReflowByIdSelector(widgetId), equal);
@@ -95,13 +90,20 @@ export const useResize = (props: UseResizeProps) => {
   const canvasWidgets = useAppSelector(getWidgetsSelector);
   const canvasWidgetsChildrenDetail = useAppSelector(getWidgetChildrenDetailSelector(parentId));
   const widgetsSpaceGraph = useAppSelector(widgetsSpaceGraphSelector);
-  const widgetsMoveInfo = useRef<Map<string, Su>>(new Map());
-  const reflowData = useRef<{
-    [propName: string]: any
-  }>({})
+  const widgetsResizeInfo = useRef<Map<string, WidgetReSizeInfo>>(new Map());
+  const reflowData = useRef<ReflowData>({})
 
-  /** 父亲的边框限制*/
-  const parentBlackInfo = useMemo(() => {
+  /** 上一次移动的数据*/
+  const lastMoveDistance = useRef<{
+    x: number,
+    y: number,
+  }>({
+    x: 0,
+    y: 0,
+  })
+
+  /** 父亲边框位置*/
+  const parentBlackInfo: WidgetRowCols = useMemo(() => {
     let parent = canvasWidgets[parentId];
     return {
       topRow: parent?.topRow * parent?.parentRowSpace / parentRowSpace,
@@ -111,97 +113,139 @@ export const useResize = (props: UseResizeProps) => {
     }
   }, [canvasWidgets, parentId, parentRowSpace, parentColumnSpace])
 
+  const dragDirection = useMemo((): Record<ReSizeDirection, string> => {
+    return {
+      [ReSizeDirection.TOP]: 'top',
+      [ReSizeDirection.BOTTOM]: 'bottom',
+      [ReSizeDirection.LEFT]: 'left',
+      [ReSizeDirection.RIGHT]: 'right',
+    }
+  }, [])
+
+  /** 设置最后一次鼠标移动的距离*/
+  const setLastMoveDistance = useCallback((x: number, y: number, direction: ReflowDirection) => {
+    let _y = 0;
+    let _x = 0;
+    if (direction === ReflowDirection.TOP
+      || direction === ReflowDirection.TOPLEFT
+      || direction === ReflowDirection.TOPRIGHT
+      || direction === ReflowDirection.BOTTOM
+      || direction === ReflowDirection.BOTTOMLEFT
+      || direction === ReflowDirection.BOTTOMRIGHT
+    ) {
+      _y = y;
+    }
+    if (direction === ReflowDirection.LEFT
+      || direction === ReflowDirection.TOPLEFT
+      || direction === ReflowDirection.BOTTOMLEFT
+      || direction === ReflowDirection.RIGHT
+      || direction === ReflowDirection.TOPRIGHT
+      || direction === ReflowDirection.BOTTOMRIGHT
+    ) {
+      _x = x;
+    }
+
+    lastMoveDistance.current = {
+      x: _x,
+      y: _y,
+    }
+  }, [])
+
+
   /** 获取reflow的数据*/
-  const getReflowData = useCallback((widgetId: string, moveRowOrColumn: number, direction: ReflowDirection) => {
-    let affectList = widgetsSpaceGraph[widgetId].relations[DragDirection[direction]];
-    let resultData: { [propName: string]: any } = {}
+  const getReflowData = useCallback((widgetId: string, moveRowOrColumn: number, direction: ReSizeDirection) => {
+    let affectWidgetList = widgetsSpaceGraph[widgetId].relations[dragDirection[direction]];
+    let temporaryReflowDataItem: { X: number, Y: number } = {} as any;
+    let resultData: ReflowData = {}
+    let item;
+    let _Y;
+    let _X;
 
-    for (let i = 0; i < affectList.length; i++) {
-      let item = affectList[i];
+    for (let i = 0; i < affectWidgetList.length; i++) {
+      item = affectWidgetList[i];
+      _Y = 0;
+      _X = 0;
+      temporaryReflowDataItem = reflowData.current[item.id];
+
+      if (Math.abs(moveRowOrColumn) <= item.distance) {
+        continue
+      }
+
       /** 上边框*/
-      if (direction === ReflowDirection.TOP) {
-        if (Math.abs(moveRowOrColumn) > item.distance) {
-
-          /** 取最小的那一个*/
-          let temporaryReflowDataItem = reflowData.current[item.id];
-          let _Y = moveRowOrColumn > 0 ? 0 : (item.distance + moveRowOrColumn) * parentRowSpace;
-          if (temporaryReflowDataItem) {
-            _Y = Math.min(_Y, temporaryReflowDataItem.Y);
-          }
-          resultData[item.id] = {
-            X: 0,
-            Y: _Y,
-          };
+      if (direction === ReSizeDirection.TOP) {
+        _Y = moveRowOrColumn > 0 ? 0 : (item.distance + moveRowOrColumn) * parentRowSpace;
+        //可能多个widgets上面是同一个widget,那么widget就应该取位置最上面的那个
+        if (temporaryReflowDataItem) {
+          _Y = Math.min(_Y, temporaryReflowDataItem.Y);
         }
-        resultData = { ...resultData, ...getReflowData(item.id, (item.distance + moveRowOrColumn), direction) }
+
+        resultData[item.id] = {
+          X: _X,
+          Y: _Y,
+        };
+
+        resultData = { ...resultData, ...getReflowData(item.id, moveRowOrColumn + item.distance, direction) }
       }
 
       /** 下边框*/
-      if (direction === ReflowDirection.BOTTOM) {
-        if (Math.abs(moveRowOrColumn) > item.distance) {
-
-          /** 取最大的那一个*/
-          let temporaryReflowDataItem = reflowData.current[item.id];
-          let _Y = moveRowOrColumn < 0 ? 0 : (moveRowOrColumn - item.distance) * parentRowSpace
-          if (temporaryReflowDataItem) {
-            _Y = Math.max(_Y, temporaryReflowDataItem.Y);
-          }
-
-          resultData[item.id] = {
-            X: 0,
-            Y: _Y,
-          };
+      if (direction === ReSizeDirection.BOTTOM) {
+        _Y = moveRowOrColumn < 0 ? 0 : (moveRowOrColumn - item.distance) * parentRowSpace
+        /** 取最大的那一个*/
+        if (temporaryReflowDataItem) {
+          _Y = Math.max(_Y, temporaryReflowDataItem.Y);
         }
+
+        resultData[item.id] = {
+          X: _X,
+          Y: _Y,
+        };
+
         resultData = { ...resultData, ...getReflowData(item.id, moveRowOrColumn - item.distance, direction) }
       }
 
       /** 左边框*/
-      if (direction === ReflowDirection.LEFT) {
-        if (Math.abs(moveRowOrColumn) > item.distance) {
-
-          /** 取最小的那一个*/
-          let temporaryReflowDataItem = reflowData.current[item.id];
-          let _X = moveRowOrColumn > 0 ? 0 : (item.distance + moveRowOrColumn) * parentColumnSpace;
-          if (temporaryReflowDataItem) {
-            _X = Math.min(_X, temporaryReflowDataItem.X);
-          }
-
-          resultData[item.id] = {
-            X: _X,
-            Y: 0
-          };
+      if (direction === ReSizeDirection.LEFT) {
+        _X = moveRowOrColumn > 0 ? 0 : (item.distance + moveRowOrColumn) * parentColumnSpace;
+        /** 取最小的那一个*/
+        if (temporaryReflowDataItem) {
+          _X = Math.min(_X, temporaryReflowDataItem.X);
         }
-        resultData = { ...resultData, ...getReflowData(item.id, item.distance + moveRowOrColumn, direction) }
+
+        resultData[item.id] = {
+          X: _X,
+          Y: _Y,
+        };
+        resultData = { ...resultData, ...getReflowData(item.id, moveRowOrColumn + item.distance, direction) }
       }
 
       /** 右边框*/
-      if (direction === ReflowDirection.RIGHT) {
-        if (Math.abs(moveRowOrColumn) > item.distance) {
-
-          /** 取最大的那一个*/
-          let temporaryReflowDataItem = reflowData.current[item.id];
-          let _X = moveRowOrColumn < 0 ? 0 : (moveRowOrColumn - item.distance) * parentColumnSpace;
-          if (temporaryReflowDataItem) {
-            _X = Math.max(_X, temporaryReflowDataItem.X);
-          }
-
-          resultData[item.id] = {
-            X: _X,
-            Y: 0
-          };
+      if (direction === ReSizeDirection.RIGHT) {
+        _X = moveRowOrColumn < 0 ? 0 : (moveRowOrColumn - item.distance) * parentColumnSpace;
+        /** 取最大的那一个*/
+        if (temporaryReflowDataItem) {
+          _X = Math.max(_X, temporaryReflowDataItem.X);
         }
+        resultData[item.id] = {
+          X: _X,
+          Y: _Y,
+        };
         resultData = { ...resultData, ...getReflowData(item.id, moveRowOrColumn - item.distance, direction) }
       }
+
     }
     return resultData
   }, [widgetsSpaceGraph, parentColumnSpace, parentRowSpace])
 
   /** 开始resize*/
   const onResizeStart = useCallback(() => {
+    lastMoveDistance.current = {
+      x: 0,
+      y: 0,
+    }
     !isResizing && dispatch(setWidgetResizing({ isResizing: true }))
     selectWidget(widgetId)
 
-    widgetsMoveInfo.current.clear()
+    widgetsResizeInfo.current.clear()
   }, [isResizing, widgetId, canvasWidgetsIds])
 
 
@@ -217,15 +261,22 @@ export const useResize = (props: UseResizeProps) => {
     let transformX = 0;
     let transformY = 0;
 
+    let minBoundaryY;
+    let maxBoundaryY;
+    let minBoundaryX;
+    let maxBoundaryX;
+
+    let _y = y;
+    let _x = x;
+
     if (direction === ReflowDirection.TOP
       || direction === ReflowDirection.TOPLEFT
       || direction === ReflowDirection.TOPRIGHT
     ) {
       /** 最小边界y*/
-      let minBoundaryY = (parentBlackInfo.topRow - topRow) * parentRowSpace;
+      minBoundaryY = (parentBlackInfo.topRow - topRow) * parentRowSpace;
       /** 最大边界y*/
-      let maxBoundaryY = (bottomRow - topRow - MIN_HEIGHT_ROW) * parentRowSpace;
-      let _y = y
+      maxBoundaryY = (bottomRow - topRow - MIN_HEIGHT_ROW) * parentRowSpace;
 
       if (y > maxBoundaryY) {
         _y = maxBoundaryY
@@ -235,7 +286,6 @@ export const useResize = (props: UseResizeProps) => {
       }
 
       _topRow += (_y / parentRowSpace);
-
       transformY = _y;
       height = componentHeight - _y;
     }
@@ -244,11 +294,10 @@ export const useResize = (props: UseResizeProps) => {
       || direction === ReflowDirection.BOTTOMRIGHT
     ) {
       /** 最小边界y*/
-      let minBoundaryY = -(bottomRow - topRow - MIN_HEIGHT_ROW) * parentRowSpace;
+      minBoundaryY = -(bottomRow - topRow - MIN_HEIGHT_ROW) * parentRowSpace;
       /** 最大边界y*/
-      let maxBoundaryY = (parentBlackInfo.bottomRow - bottomRow) * parentRowSpace;
+      maxBoundaryY = (parentBlackInfo.bottomRow - bottomRow) * parentRowSpace;
 
-      let _y = y
       if (y > maxBoundaryY) {
         _y = maxBoundaryY
       }
@@ -256,7 +305,6 @@ export const useResize = (props: UseResizeProps) => {
         _y = minBoundaryY
       }
       _bottomRow += (_y / parentRowSpace);
-
       height = componentHeight + _y;
     }
 
@@ -264,10 +312,8 @@ export const useResize = (props: UseResizeProps) => {
       || direction === ReflowDirection.TOPLEFT
       || direction === ReflowDirection.BOTTOMLEFT
     ) {
-
-      let _x = x;
-      let minBoundaryX = (parentBlackInfo.leftColumn - leftColumn) * parentColumnSpace
-      let maxBoundaryX = (rightColumn - leftColumn - MIN_WIDTH_COLUMN) * parentColumnSpace
+      minBoundaryX = (parentBlackInfo.leftColumn - leftColumn) * parentColumnSpace
+      maxBoundaryX = (rightColumn - leftColumn - MIN_WIDTH_COLUMN) * parentColumnSpace
 
       if (_x < minBoundaryX) {
         _x = minBoundaryX;
@@ -276,7 +322,6 @@ export const useResize = (props: UseResizeProps) => {
         _x = maxBoundaryX
       }
       _leftColumn += (_x / parentColumnSpace);
-
       width = componentWidth - _x;
       transformX = _x;
     }
@@ -284,9 +329,9 @@ export const useResize = (props: UseResizeProps) => {
       || direction === ReflowDirection.TOPRIGHT
       || direction === ReflowDirection.BOTTOMRIGHT
     ) {
-      let _x = x
-      let minBoundaryX = -((rightColumn - leftColumn - MIN_WIDTH_COLUMN) * parentColumnSpace);
-      let maxBoundaryX = (parentBlackInfo.rightColumn - rightColumn) * parentColumnSpace
+
+      minBoundaryX = -((rightColumn - leftColumn - MIN_WIDTH_COLUMN) * parentColumnSpace);
+      maxBoundaryX = (parentBlackInfo.rightColumn - rightColumn) * parentColumnSpace
 
       if (_x < minBoundaryX) {
         _x = minBoundaryX;
@@ -296,7 +341,6 @@ export const useResize = (props: UseResizeProps) => {
       }
 
       _rightColumn += (_x / parentColumnSpace);
-
       width = componentWidth + _x;
     }
 
@@ -316,27 +360,27 @@ export const useResize = (props: UseResizeProps) => {
   )
 
   /** 获取widget元素四周widgets的 高度和|宽度和*/
-  const getDistanceSum = useCallback((widgetId: string, y: number, direction: ReflowDirection): number => {
+  const getDistanceSum = useCallback((widgetId: string, direction: ReSizeDirection): number => {
     let distanceSum = 0
-    if (direction === ReflowDirection.TOP || direction === ReflowDirection.BOTTOM) {
+    if (direction === ReSizeDirection.TOP || direction === ReSizeDirection.BOTTOM) {
       distanceSum = widgetsSpaceGraph[widgetId].position.bottom - widgetsSpaceGraph[widgetId].position.top;
     }
-    if (direction === ReflowDirection.LEFT || direction === ReflowDirection.RIGHT) {
+    if (direction === ReSizeDirection.LEFT || direction === ReSizeDirection.RIGHT) {
       distanceSum = widgetsSpaceGraph[widgetId].position.right - widgetsSpaceGraph[widgetId].position.left;
     }
 
-    let affectList = widgetsSpaceGraph[widgetId].relations[DragDirection[direction]];
+    let affectWidgetList = widgetsSpaceGraph[widgetId].relations[dragDirection[direction]];
 
     let maxHeight = distanceSum || 0;
-    for (let i = 0; i < affectList.length; i++) {
-      let item = affectList[i];
-      maxHeight = Math.max(maxHeight, distanceSum + getDistanceSum(item.id, y, direction))
+    for (let i = 0; i < affectWidgetList.length; i++) {
+      let item = affectWidgetList[i];
+      maxHeight = Math.max(maxHeight, distanceSum + getDistanceSum(item.id, direction))
     }
     return maxHeight
-  }, [])
+  }, [widgetsSpaceGraph])
 
   /** 获得接触状态*/
-  const getContactState = useCallback((arr: any[], startInd: number, endInd: number): boolean => {
+  const getContactState = useCallback((arr: number[], startInd: number, endInd: number): boolean => {
     let isTrue: boolean = true
     for (let i = startInd; i <= endInd; i++) {
       if (arr[i] === 1) {
@@ -357,6 +401,7 @@ export const useResize = (props: UseResizeProps) => {
     const { x, y, direction } = data
     reflowData.current = {};
 
+
     /** 上方widgets的高度和*/
     let topWidgetHeightSum = 0;
     let bottomWidgetHeightSum = 0;
@@ -364,53 +409,57 @@ export const useResize = (props: UseResizeProps) => {
     let rightWidgetWidthSum = 0;
 
 
+    let startRow = 0;
+    let endRow = 0;
+
+
     /** 排序的列表*/
     let sortCanvasWidgetList = canvasWidgetsChildrenDetail
-
     let currentResizeInfo = getCurrentResizeWidgetInfo(x, y, direction);
-
     let sign = new Array(currentResizeInfo.rightColumn + 1).fill(0);
 
     /** 范围外去除*/
     for (let item of sortCanvasWidgetList) {
-      if (item.widgetId != widgetId) {
-        if (item.leftColumn >= currentResizeInfo.rightColumn || item.rightColumn <= currentResizeInfo.leftColumn) {
-          if (widgetsMoveInfo.current.has(item.widgetId)
-            && (widgetsMoveInfo.current.get(item.widgetId)?.direction === ReflowDirection.TOP ||
-              widgetsMoveInfo.current.get(item.widgetId)?.direction === ReflowDirection.BOTTOM
-            )) {
-            widgetsMoveInfo.current.delete(item.widgetId)
-          }
+      if (item.widgetId === widgetId) {
+        continue;
+      }
+
+      if (item.leftColumn >= currentResizeInfo.rightColumn || item.rightColumn <= currentResizeInfo.leftColumn) {
+        if (widgetsResizeInfo.current.has(item.widgetId)
+          && (widgetsResizeInfo.current.get(item.widgetId)?.direction === ReflowDirection.TOP ||
+            widgetsResizeInfo.current.get(item.widgetId)?.direction === ReflowDirection.BOTTOM
+          )) {
+          widgetsResizeInfo.current.delete(item.widgetId)
         }
       }
 
       if (item.bottomRow <= currentResizeInfo.topRow || item.topRow >= currentResizeInfo.bottomRow) {
-        if (widgetsMoveInfo.current.has(item.widgetId)
-          && (widgetsMoveInfo.current.get(item.widgetId)?.direction === ReflowDirection.LEFT
-            || widgetsMoveInfo.current.get(item.widgetId)?.direction === ReflowDirection.RIGHT
+        if (widgetsResizeInfo.current.has(item.widgetId)
+          && (widgetsResizeInfo.current.get(item.widgetId)?.direction === ReflowDirection.LEFT
+            || widgetsResizeInfo.current.get(item.widgetId)?.direction === ReflowDirection.RIGHT
           )
         ) {
-          widgetsMoveInfo.current.delete(item.widgetId)
+          widgetsResizeInfo.current.delete(item.widgetId)
         }
       }
     }
 
     /** 高度不够去除*/
-    widgetsMoveInfo.current.forEach((value, key) => {
+    widgetsResizeInfo.current.forEach((value, key) => {
       if (value.direction === ReflowDirection.TOP && y > value.minY) {
-        widgetsMoveInfo.current.delete(key);
+        widgetsResizeInfo.current.delete(key);
       }
 
       if (value.direction === ReflowDirection.BOTTOM && y < value.minY) {
-        widgetsMoveInfo.current.delete(key);
+        widgetsResizeInfo.current.delete(key);
       }
 
       if (value.direction === ReflowDirection.LEFT && x > value.minX) {
-        widgetsMoveInfo.current.delete(key);
+        widgetsResizeInfo.current.delete(key);
       }
 
       if (value.direction === ReflowDirection.RIGHT && x < value.minX) {
-        widgetsMoveInfo.current.delete(key);
+        widgetsResizeInfo.current.delete(key);
       }
     })
 
@@ -419,43 +468,29 @@ export const useResize = (props: UseResizeProps) => {
       || direction === ReflowDirection.TOPLEFT
       || direction === ReflowDirection.TOPRIGHT
     ) {
-
       sortCanvasWidgetList = _.sortBy(canvasWidgetsChildrenDetail, ['bottomRow']).reverse();
-
       /** 确定方向*/
       for (let item of sortCanvasWidgetList) {
-        if (item.widgetId != widgetId) {
-          if (!(item.leftColumn >= currentResizeInfo.rightColumn || item.rightColumn <= currentResizeInfo.leftColumn)
-            && currentResizeInfo.topRow <= item.bottomRow
-            && currentResizeInfo.bottomRow > item.bottomRow
-          ) {
-            let temporaryItem = widgetsMoveInfo.current.get(item.widgetId)
-            if (currentResizeInfo.topRow === item.bottomRow) {
-              widgetsMoveInfo.current.set(item.widgetId, {
-                direction: ReflowDirection.TOP,
-                leftColumn: item.leftColumn,
-                rightColumn: item.rightColumn,
-                topRow: item.topRow,
-                bottomRow: item.bottomRow,
-                minY: y,
-                minX: 0,
-              })
-            }
+        if (item.widgetId === widgetId) {
+          continue;
+        }
+        startRow = Math.min(topRow + (lastMoveDistance.current.y) / parentRowSpace, bottomRow - MIN_HEIGHT_ROW);
+        endRow = topRow + (y) / parentRowSpace;
+        if (!(item.leftColumn >= currentResizeInfo.rightColumn || item.rightColumn <= currentResizeInfo.leftColumn)
+          && startRow > endRow
+          && item.bottomRow <= startRow
+          && item.bottomRow >= endRow
+        ) {
 
-            /** 避免鼠标太快没有监听到*/
-            if (currentResizeInfo.topRow < item.bottomRow
-              && !temporaryItem) {
-              widgetsMoveInfo.current.set(item.widgetId, {
-                direction: ReflowDirection.TOP,
-                leftColumn: item.leftColumn,
-                rightColumn: item.rightColumn,
-                topRow: item.topRow,
-                bottomRow: item.bottomRow,
-                minY: y + (item.bottomRow - currentResizeInfo.topRow) * parentRowSpace,
-                minX: 0,
-              })
-            }
-          }
+          widgetsResizeInfo.current.set(item.widgetId, {
+            direction: ReflowDirection.TOP,
+            leftColumn: item.leftColumn,
+            rightColumn: item.rightColumn,
+            topRow: item.topRow,
+            bottomRow: item.bottomRow,
+            minY: y + (item.bottomRow - currentResizeInfo.topRow) * parentRowSpace,
+            minX: 0,
+          })
         }
       }
 
@@ -463,19 +498,19 @@ export const useResize = (props: UseResizeProps) => {
       sign.fill(0);
 
       /** 获取widget高度和*/
-      widgetsMoveInfo.current.forEach((value, key) => {
+      widgetsResizeInfo.current.forEach((value, key) => {
         if (
           getContactState(sign, value.leftColumn + 1, value.rightColumn - 1) &&
           value.direction === ReflowDirection.TOP
         ) {
           sign.fill(1, value.leftColumn + 1, value.rightColumn - 1);
-          topWidgetHeightSum = Math.max(topWidgetHeightSum, getDistanceSum(key, y, ReflowDirection.TOP))
+          topWidgetHeightSum = Math.max(topWidgetHeightSum, getDistanceSum(key, ReSizeDirection.TOP))
         }
       })
 
 
       sign.fill(0);
-      widgetsMoveInfo.current.forEach((value, key) => {
+      widgetsResizeInfo.current.forEach((value, key) => {
         if (
           getContactState(sign, value.leftColumn + 1, value.rightColumn - 1) &&
           value.direction === ReflowDirection.TOP
@@ -487,9 +522,7 @@ export const useResize = (props: UseResizeProps) => {
 
           /** 边界*/
           if ((topRow + (y / parentRowSpace) - parentBlackInfo.topRow) - topWidgetHeightSum < 0) {
-          
             _y = -(topRow - topWidgetHeightSum - parentBlackInfo.topRow) * parentRowSpace
-
             currentResizeInfo.transformY = _y;
             currentResizeInfo.height = componentHeight - _y
             currentResizeInfo.topRow = topRow + (_y / parentRowSpace);
@@ -500,7 +533,8 @@ export const useResize = (props: UseResizeProps) => {
               X: 0,
               Y: _y - value.minY
             };
-            reflowData.current = { ...reflowData.current, ...getReflowData(key, (_y - value.minY) / parentRowSpace, ReflowDirection.TOP) }
+
+            reflowData.current = { ...reflowData.current, ...getReflowData(key, (_y - value.minY) / parentRowSpace, ReSizeDirection.TOP) }
           }
         }
       })
@@ -515,55 +549,43 @@ export const useResize = (props: UseResizeProps) => {
       sortCanvasWidgetList = _.sortBy(canvasWidgetsChildrenDetail, ['topRow']);
 
       for (let item of sortCanvasWidgetList) {
-        if (item.widgetId != widgetId) {
-          if (!(item.leftColumn >= currentResizeInfo.rightColumn || item.rightColumn <= currentResizeInfo.leftColumn)
-            && currentResizeInfo.bottomRow >= item.topRow
-            && currentResizeInfo.topRow < item.topRow
-          ) {
-            let temporaryItem = widgetsMoveInfo.current.get(item.widgetId)
-            if (currentResizeInfo.bottomRow === item.topRow) {
-              widgetsMoveInfo.current.set(item.widgetId, {
-                direction: ReflowDirection.BOTTOM,
-                leftColumn: item.leftColumn,
-                rightColumn: item.rightColumn,
-                topRow: item.topRow,
-                bottomRow: item.bottomRow,
-                minY: y,
-                minX: 0,
-              })
-            }
-
-            if (currentResizeInfo.bottomRow > item.topRow
-              && !temporaryItem) {
-              widgetsMoveInfo.current.set(item.widgetId, {
-                direction: ReflowDirection.BOTTOM,
-                leftColumn: item.leftColumn,
-                rightColumn: item.rightColumn,
-                topRow: item.topRow,
-                bottomRow: item.bottomRow,
-                minY: y - (currentResizeInfo.bottomRow - item.topRow) * parentRowSpace,
-                minX: 0,
-              })
-            }
-          }
+        if (item.widgetId === widgetId) {
+          continue;
+        }
+        startRow = Math.max(bottomRow + (lastMoveDistance.current.y) / parentRowSpace, topRow + MIN_HEIGHT_ROW);
+        endRow = bottomRow + (y) / parentRowSpace;
+        if (!(item.leftColumn >= currentResizeInfo.rightColumn || item.rightColumn <= currentResizeInfo.leftColumn)
+          && startRow < endRow
+          && item.topRow >= startRow
+          && item.topRow <= endRow
+        ) {
+          widgetsResizeInfo.current.set(item.widgetId, {
+            direction: ReflowDirection.BOTTOM,
+            leftColumn: item.leftColumn,
+            rightColumn: item.rightColumn,
+            topRow: item.topRow,
+            bottomRow: item.bottomRow,
+            minY: y - (currentResizeInfo.bottomRow - item.topRow) * parentRowSpace,
+            minX: 0,
+          })
         }
       }
 
       sign.fill(0);
       bottomWidgetHeightSum = 0;
       /** 获取下方widget高度和*/
-      widgetsMoveInfo.current.forEach((value, key) => {
+      widgetsResizeInfo.current.forEach((value, key) => {
         if (
           getContactState(sign, value.leftColumn + 1, value.rightColumn - 1) &&
           value.direction === ReflowDirection.BOTTOM
         ) {
           sign.fill(1, value.leftColumn + 1, value.rightColumn - 1);
-          bottomWidgetHeightSum = Math.max(bottomWidgetHeightSum, getDistanceSum(key, y, ReflowDirection.BOTTOM))
+          bottomWidgetHeightSum = Math.max(bottomWidgetHeightSum, getDistanceSum(key, ReSizeDirection.BOTTOM))
         }
       })
 
       sign.fill(0);
-      widgetsMoveInfo.current.forEach((value, key) => {
+      widgetsResizeInfo.current.forEach((value, key) => {
         if (getContactState(sign, value.leftColumn + 1, value.rightColumn - 1)
           && value.direction === ReflowDirection.BOTTOM
           && !reflowData.current[key]
@@ -584,7 +606,7 @@ export const useResize = (props: UseResizeProps) => {
               X: 0,
               Y: _y - value.minY
             };
-            reflowData.current = { ...reflowData.current, ...getReflowData(key, (_y - value.minY) / parentRowSpace, ReflowDirection.BOTTOM) }
+            reflowData.current = { ...reflowData.current, ...getReflowData(key, (_y - value.minY) / parentRowSpace, ReSizeDirection.BOTTOM) }
           }
         }
       })
@@ -601,55 +623,44 @@ export const useResize = (props: UseResizeProps) => {
 
       /** 确定方向*/
       for (let item of sortCanvasWidgetList) {
-        if (item.widgetId != widgetId) {
-          if (!(item.bottomRow <= currentResizeInfo.topRow || item.topRow >= currentResizeInfo.bottomRow)
-            && currentResizeInfo.leftColumn <= item.rightColumn
-            && currentResizeInfo.rightColumn > item.rightColumn
-          ) {
-            let temporaryItem = widgetsMoveInfo.current.get(item.widgetId)
+        if (item.widgetId === widgetId) {
+          continue;
+        }
 
-            if (currentResizeInfo.leftColumn === item.rightColumn) {
-              widgetsMoveInfo.current.set(item.widgetId, {
-                direction: ReflowDirection.LEFT,
-                leftColumn: item.leftColumn,
-                rightColumn: item.rightColumn,
-                topRow: item.topRow,
-                bottomRow: item.bottomRow,
-                minY: 0,
-                minX: x,
-              })
-            }
-
-            if (currentResizeInfo.leftColumn < item.rightColumn && !temporaryItem) {
-              widgetsMoveInfo.current.set(item.widgetId, {
-                direction: ReflowDirection.LEFT,
-                leftColumn: item.leftColumn,
-                rightColumn: item.rightColumn,
-                topRow: item.topRow,
-                bottomRow: item.bottomRow,
-                minY: 0,
-                minX: x + (item.rightColumn - currentResizeInfo.leftColumn) * parentColumnSpace,
-              })
-            }
-          }
+        startRow = Math.min(leftColumn + (lastMoveDistance.current.x) / parentColumnSpace, rightColumn - MIN_WIDTH_COLUMN);
+        endRow = leftColumn + (x) / parentColumnSpace;
+        if (!(item.bottomRow <= currentResizeInfo.topRow || item.topRow >= currentResizeInfo.bottomRow)
+          && startRow > endRow
+          && item.rightColumn <= startRow
+          && item.rightColumn >= endRow
+        ) {
+          widgetsResizeInfo.current.set(item.widgetId, {
+            direction: ReflowDirection.LEFT,
+            leftColumn: item.leftColumn,
+            rightColumn: item.rightColumn,
+            topRow: item.topRow,
+            bottomRow: item.bottomRow,
+            minY: 0,
+            minX: x + (item.rightColumn - currentResizeInfo.leftColumn) * parentColumnSpace,
+          })
         }
       }
 
       sign.fill(0);
       leftWidgetWidthSum = 0;
       /** 获取左边widget宽度和*/
-      widgetsMoveInfo.current.forEach((value, key) => {
+      widgetsResizeInfo.current.forEach((value, key) => {
         if (
           getContactState(sign, value.topRow + 1, value.bottomRow - 1) &&
           value.direction === ReflowDirection.LEFT
         ) {
           sign.fill(1, value.topRow + 1, value.bottomRow - 1);
-          leftWidgetWidthSum = Math.max(leftWidgetWidthSum, getDistanceSum(key, y, ReflowDirection.LEFT))
+          leftWidgetWidthSum = Math.max(leftWidgetWidthSum, getDistanceSum(key, ReSizeDirection.LEFT))
         }
       })
 
       sign.fill(0);
-      widgetsMoveInfo.current.forEach((value, key) => {
+      widgetsResizeInfo.current.forEach((value, key) => {
         if (
           getContactState(sign, value.topRow + 1, value.bottomRow - 1)
           && value.direction === ReflowDirection.LEFT
@@ -670,7 +681,7 @@ export const useResize = (props: UseResizeProps) => {
               X: _x - value.minX,
               Y: 0
             };
-            reflowData.current = { ...reflowData.current, ...getReflowData(key, (_x - value.minX) / parentColumnSpace, ReflowDirection.LEFT) }
+            reflowData.current = { ...reflowData.current, ...getReflowData(key, (_x - value.minX) / parentColumnSpace, ReSizeDirection.LEFT) }
           }
         }
       })
@@ -684,55 +695,42 @@ export const useResize = (props: UseResizeProps) => {
       sortCanvasWidgetList = _.sortBy(canvasWidgetsChildrenDetail, ['leftColumn']);
 
       for (let item of sortCanvasWidgetList) {
-        if (item.widgetId != widgetId) {
-          if (!(item.bottomRow <= currentResizeInfo.topRow || item.topRow >= currentResizeInfo.bottomRow)
-            && currentResizeInfo.rightColumn >= item.leftColumn
-            && currentResizeInfo.leftColumn < item.leftColumn
-          ) {
+        if (item.widgetId === widgetId) {
+          continue;
+        }
 
-            let temporaryItem = widgetsMoveInfo.current.get(item.widgetId)
-
-            if (currentResizeInfo.rightColumn === item.leftColumn) {
-              widgetsMoveInfo.current.set(item.widgetId, {
-                direction: ReflowDirection.RIGHT,
-                leftColumn: item.leftColumn,
-                rightColumn: item.rightColumn,
-                topRow: item.topRow,
-                bottomRow: item.bottomRow,
-                minY: 0,
-                minX: x,
-              })
-            }
-
-            if (currentResizeInfo.rightColumn > item.leftColumn && !temporaryItem) {
-              widgetsMoveInfo.current.set(item.widgetId, {
-                direction: ReflowDirection.RIGHT,
-                leftColumn: item.leftColumn,
-                rightColumn: item.rightColumn,
-                topRow: item.topRow,
-                bottomRow: item.bottomRow,
-                minY: 0,
-                minX: x - (currentResizeInfo.rightColumn - item.leftColumn) * parentColumnSpace,
-              })
-            }
-          }
+        startRow = Math.max(rightColumn + (lastMoveDistance.current.x) / parentColumnSpace, leftColumn + MIN_WIDTH_COLUMN);
+        endRow = rightColumn + x / parentColumnSpace;
+        if (!(item.bottomRow <= currentResizeInfo.topRow || item.topRow >= currentResizeInfo.bottomRow)
+          && startRow < endRow
+          && (item.leftColumn >= startRow && item.leftColumn <= endRow)
+        ) {
+          widgetsResizeInfo.current.set(item.widgetId, {
+            direction: ReflowDirection.RIGHT,
+            leftColumn: item.leftColumn,
+            rightColumn: item.rightColumn,
+            topRow: item.topRow,
+            bottomRow: item.bottomRow,
+            minY: 0,
+            minX: x - (currentResizeInfo.rightColumn - item.leftColumn) * parentColumnSpace,
+          })
         }
       }
 
       sign.fill(0);
       rightWidgetWidthSum = 0;
-      widgetsMoveInfo.current.forEach((value, key) => {
+      widgetsResizeInfo.current.forEach((value, key) => {
         if (
           getContactState(sign, value.topRow + 1, value.bottomRow - 1) &&
           value.direction === ReflowDirection.RIGHT
         ) {
           sign.fill(1, value.topRow + 1, value.bottomRow - 1);
-          rightWidgetWidthSum = Math.max(rightWidgetWidthSum, getDistanceSum(key, y, ReflowDirection.RIGHT))
+          rightWidgetWidthSum = Math.max(rightWidgetWidthSum, getDistanceSum(key, ReSizeDirection.RIGHT))
         }
       })
 
       sign.fill(0);
-      widgetsMoveInfo.current.forEach((value, key) => {
+      widgetsResizeInfo.current.forEach((value, key) => {
         if (getContactState(sign, value.topRow + 1, value.bottomRow - 1)
           && value.direction === ReflowDirection.RIGHT
           && !reflowData.current[key]
@@ -752,7 +750,7 @@ export const useResize = (props: UseResizeProps) => {
               X: _x - value.minX,
               Y: 0
             };
-            reflowData.current = { ...reflowData.current, ...getReflowData(key, (_x - value.minX) / parentColumnSpace, ReflowDirection.RIGHT) }
+            reflowData.current = { ...reflowData.current, ...getReflowData(key, (_x - value.minX) / parentColumnSpace, ReSizeDirection.RIGHT) }
           }
         }
       })
@@ -766,6 +764,7 @@ export const useResize = (props: UseResizeProps) => {
       height: currentResizeInfo.height,
       direction
     })
+    setLastMoveDistance(x, y, direction)
   }, [topRow,
     parentRowSpace,
     parentColumnSpace,
@@ -781,13 +780,18 @@ export const useResize = (props: UseResizeProps) => {
     getReflowData,
     getCurrentResizeWidgetInfo,
     parentBlackInfo,
-    getDistanceSum
+    getDistanceSum,
+    setLastMoveDistance
   ])
 
 
   /** 停止resize*/
   const onResizeStop = useCallback(() => {
     dispatch(setWidgetResizing({ isResizing: false }))
+
+    /** 触发action*/
+
+
   }, [])
 
   /** 拖拽时widget宽度*/
