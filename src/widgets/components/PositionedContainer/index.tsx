@@ -30,7 +30,7 @@ export default function PositionedContainer(props: PositionedContainer) {
 
   const top = useMemo(() => {
     return topRow * parentRowSpace
-  }, [topRow, parentRowSpace])
+  }, [topRow, parentRowSpace,widgetId])
 
   const left = useMemo(() => {
     return leftColumn * parentColumnSpace

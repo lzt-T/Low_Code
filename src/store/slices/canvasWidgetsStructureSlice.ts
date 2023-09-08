@@ -36,36 +36,36 @@ const initialState: { dsl: any } = {
     children: [
       {
         parentId: MAIN_CONTAINER_WIDGET_ID,
-        bottomRow: 10,
-        topRow: 4,
+        // bottomRow: 10,
+        // topRow: 4,
         type: "BUTTON_WIDGET",
         widgetId: "one"
       },
       {
         parentId: MAIN_CONTAINER_WIDGET_ID,
-        bottomRow: 10,
-        topRow: 4,
+        // bottomRow: 10,
+        // topRow: 4,
         type: "BUTTON_WIDGET",
         widgetId: "two"
       },
       {
         parentId: MAIN_CONTAINER_WIDGET_ID,
-        bottomRow: 10,
-        topRow: 4,
+        // bottomRow: 10,
+        // topRow: 4,
         type: "BUTTON_WIDGET",
         widgetId: "three"
       },
       {
         parentId: MAIN_CONTAINER_WIDGET_ID,
-        bottomRow: 10,
-        topRow: 4,
+        // bottomRow: 10,
+        // topRow: 4,
         type: "BUTTON_WIDGET",
         widgetId: "four"
       },
       {
         parentId: MAIN_CONTAINER_WIDGET_ID,
-        bottomRow: 10,
-        topRow: 4,
+        // bottomRow: 10,
+        // topRow: 4,
         type: "BUTTON_WIDGET",
         widgetId: "five"
       },

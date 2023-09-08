@@ -10,7 +10,7 @@ export enum ReflowDirection {
   UNSET = "UNSET",
 }
 
-export enum ReSizeDirection{
+export enum ReSizeDirection {
   LEFT = "LEFT",
   RIGHT = "RIGHT",
   TOP = "TOP",

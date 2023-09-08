@@ -69,7 +69,7 @@ export default function ReflowResizable(props: ReflowResizableProps) {
       transform: `translate3d(${widgetDimension.x}px, ${widgetDimension.y}px, 0)`
     },
     // 如果为真，则停止动画(直接跳转到结束状态)
-    // immediate: true,
+    immediate: !!widgetDimension.reset,
   })
 
 

@@ -1,3 +1,6 @@
+import { useAppSelector } from '@/hooks/redux';
+import { getWidgetByIdSelector, getWidgetsSelector } from '@/store/slices/canvasWidgets';
+import { isResizingSelector } from '@/store/slices/dragResize';
 import WidgetFactory from '@/widgets/WidgetFactory';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 

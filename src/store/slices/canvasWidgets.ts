@@ -5,6 +5,49 @@ import { RootState } from ".."
 import { RenderModes } from "@/interface/canvas"
 
 
+
+// const buttons = {}
+// const children = []
+// for (let i = 0; i < 30; i++) {
+//   const button = {
+//     widgetId: "button" + i,
+//     leftColumn: (i * 10) % 50 + 5,
+//     rightColumn: ((i * 10) % 50) + 15,
+//     topRow: 4 * Math.floor(i / 5) + 12,
+//     bottomRow: 4 * Math.floor(i / 5) + 16,
+//     parentColumnSpace: (375 - 8) / 64,
+//     parentRowSpace: 10,
+//     parentId: "0",
+//     type: "BUTTON_WIDGET",
+//     widgetName: "Button Widget" + i,
+//   }
+//   buttons["button" + i] = button
+//   children.push('button' + i)
+// }
+
+// const CanvasInfo = {
+//   0: {
+//     type: "CANVAS_WIDGET",
+//     widgetId: "0",
+//     topRow: 0,
+//     bottomRow: Math.ceil(380),
+//     renderMode: "CANVAS",
+//     canExtend: true,
+//     widgetName: "MainContainer",
+//     detachFromLayout: true,
+//     parentColumnSpace: 1,
+//     parentRowSpace: 1,
+//     leftColumn: 0,
+//     rightColumn: 375,
+//     version: 1,
+//     isLoading: false,
+//     children: children,
+//     snapColumns: 64,
+//     noPad: false,
+//   },
+//   ...buttons,
+// }
+
 const initialState: {
   [propName: string]: {
     topRow: number,
@@ -15,7 +58,7 @@ const initialState: {
     parentRowSpace: number,
     [propNams: string]: any
   }
-} = {
+} ={
   0: {
     type: "CANVAS_WIDGET",
     widgetId: MAIN_CONTAINER_WIDGET_ID,
@@ -31,7 +74,7 @@ const initialState: {
     rightColumn: 375,
     version: 1,
     isLoading: false,
-    children: ['one','two','three','four','five'],
+    children: ['one', 'two', 'three', 'four', 'five'],
     snapColumns: 64,
     noPad: true,
   },
@@ -114,9 +157,9 @@ const initialState: {
   'five': {
     widgetId: 'five',
     leftColumn: 50,
-    rightColumn: 60,
+    rightColumn: 64,
     topRow: 10,
-    bottomRow: 30,
+    bottomRow: 38,
     parentId: '0',
     type: 'BUTTON_WIDGET',
     widgetName: 'Button Widget',
@@ -130,7 +173,7 @@ const initialState: {
     detachFromLayout: false,
     isVisible: false,
   },
-  
+
 }
 
 const canvasWidgetsSlice = createSlice({
@@ -144,11 +187,47 @@ const canvasWidgetsSlice = createSlice({
     ) => {
       state = action.payload.widgets
     },
+
+    /** 更新widget信息*/
+    updateWidgetAccordingWidgetId: (
+      state,
+      action: {
+        payload: {
+          widgetId: string,
+          widgetRowCol: any,
+        }
+      }
+    ) => {
+      state[action.payload.widgetId] = {
+        ...state[action.payload.widgetId],
+        ...action.payload.widgetRowCol,
+      }
+    },
+
+    /** 更新widgets信息*/
+    updateWidgets: (
+      state,
+      action: {
+        payload: {
+          widgetsRowCol: any,
+        }
+      }
+    ) => {
+      Object.keys(action.payload.widgetsRowCol).forEach((key) => {
+        let item = action.payload.widgetsRowCol[key]
+        state[key] = {
+          ...state[key],
+          ...item,
+        }
+      })
+    }
   }
 })
 
 export const {
-  initLayout
+  updateWidgetAccordingWidgetId,
+  initLayout,
+  updateWidgets
 } = canvasWidgetsSlice.actions
 
 /** 获取所有widgets对象数据*/
