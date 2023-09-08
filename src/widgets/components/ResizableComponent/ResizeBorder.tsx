@@ -11,9 +11,7 @@ import {
   TopRightBorderStyles
 } from './ResizeableStyle'
 import ResizableHandle from './ResizableHandle'
-import { DimensionProps } from '@/hooks/useResize'
 import { ReflowDirection } from '@/enum/move'
-import { MIN_HEIGHT_ROW, MIN_WIDTH_COLUMN } from '@/constant/widget'
 
 interface ResizeBorderProps {
   widgetDimension: any,
@@ -57,8 +55,6 @@ export default function ResizeBorder(props: ResizeBorderProps) {
   /** 设置边框dom*/
   useEffect(() => {
     let list: any = [];
-    let minHeight = MIN_HEIGHT_ROW * parentRowSpace;
-    let minWidth = MIN_WIDTH_COLUMN * parentColumnSpace;
     if (allBorders.topBorderEle) {
       list.push({
         Component: allBorders.topBorderEle,
@@ -111,10 +107,6 @@ export default function ResizeBorder(props: ResizeBorderProps) {
       list.push({
         Component: allBorders.topLeftBorderEle,
         onDrag: (x: number, y: number) => {
-          let width = dimensions.width - x > minWidth ? dimensions.width - x : minWidth
-          let height = dimensions.height - y > minHeight ?  dimensions.height - y : minHeight
-          let _x = x > dimensions.width - minWidth ? dimensions.width - minWidth : x;
-          let _y = y > dimensions.height - minHeight ? dimensions.height - minHeight : y;
           onResizeDrag({
             x,
             y,
@@ -127,9 +119,6 @@ export default function ResizeBorder(props: ResizeBorderProps) {
       list.push({
         Component: allBorders.topRightBorderEle,
         onDrag: (x: number, y: number) => {
-          let width = dimensions.width + x > minWidth ? dimensions.width + x : minWidth
-          let height = dimensions.height - y > minHeight ?  dimensions.height - y : minHeight
-          let _y = y > dimensions.height - minHeight ? dimensions.height - minHeight : y;
           onResizeDrag({
             x,
             y,
@@ -142,9 +131,6 @@ export default function ResizeBorder(props: ResizeBorderProps) {
       list.push({
         Component: allBorders.bottomLeftBorderEle,
         onDrag: (x: number, y: number) => {
-          let width = dimensions.width - x > minWidth ? dimensions.width - x : minWidth
-          let height = dimensions.height + y > minHeight ? dimensions.height + y : minHeight
-          let _x = x > dimensions.width - minWidth ? dimensions.width - minWidth : x;
           onResizeDrag({
             x,
             y,
@@ -157,8 +143,6 @@ export default function ResizeBorder(props: ResizeBorderProps) {
       list.push({
         Component: allBorders.bottomRightBorderEle,
         onDrag: (x: number, y: number) => {
-          let width = dimensions.width + x > minWidth ? dimensions.width + x : minWidth
-          let height = dimensions.height + y > minHeight ? dimensions.height + y : minHeight
           onResizeDrag({
             x,
             y,

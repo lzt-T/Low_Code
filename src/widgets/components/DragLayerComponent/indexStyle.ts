@@ -11,8 +11,8 @@ export const WrappedDragLayerSty = styled.div<{
   top: -${GRID_POINT_SIZE }px;
   left: -${GRID_POINT_SIZE }px;
   pointer-events: none;
-  height:100%;
-  width:100%;
+  height: calc(100% + 16px);
+  width: 100%;
   background-image: radial-gradient(
     circle at ${GRID_POINT_SIZE}px ${GRID_POINT_SIZE}px,
     #ccc ${GRID_POINT_SIZE}px,

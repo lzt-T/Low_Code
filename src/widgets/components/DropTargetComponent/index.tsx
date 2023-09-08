@@ -53,7 +53,8 @@ export function DropTargetComponent(props: DropTargetComponentProps) {
     }
     }>
       {isEmpty && <div>请拖拽组件</div>}
-      {showDragLayer &&
+      {
+        showDragLayer &&
         (
           <DragLayerComponent
             parentColumnWidth={snapColumnSpace}

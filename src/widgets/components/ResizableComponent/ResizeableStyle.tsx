@@ -7,7 +7,7 @@ let theme = {
   colors: {
     widgetLightBorder: '#6871EF',
     widgetMultiSelectBorder: '#6871EF',
-    widgetBorder: '#768896'
+    widgetBorder: '#2cbba6'
   }
 }
 
@@ -20,6 +20,7 @@ const VerticalBorderStyles: any = css<{
   top: ${0 - WIDGET_PADDING}px;
   height: calc(100% + ${WIDGET_PADDING * 2}px);
   width:${EDGE_RESIZE_HANDLE_WIDTH}px;
+  // background:yellow;
   ${(props) => (!props.showAsBorder ? "cursor: col-resize;" : "")}
 
   &::before {
@@ -40,12 +41,12 @@ const VerticalBorderStyles: any = css<{
     position: absolute;
     content: "";
     width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: ${(props) => {
-    return props.showLightBorder ? theme.colors.widgetLightBorder : theme.colors.widgetBorder
-  }};
-    top: calc(50% - 3px);
+    height: 12px;
+    box-sizing: border-box;
+    border-radius: 2px;
+    border: 1px solid #2cbba6;
+    background: #FFF;
+    top: calc(50% - 6px);
   }
 `
 
@@ -55,11 +56,11 @@ const HorizontalBorderStyles: any = css<{
   showLightBorder: boolean;
 }>`
   position: absolute;
-  left:-${EDGE_RESIZE_HANDLE_WIDTH / 2}px;
+  left:-${WIDGET_PADDING}px;
   height:${EDGE_RESIZE_HANDLE_WIDTH}px;
-  width: calc(100% + ${EDGE_RESIZE_HANDLE_WIDTH}px);
+  width: calc(100% + ${WIDGET_PADDING * 2}px);
   ${(props) => (!props.showAsBorder ? "cursor: row-resize;" : "")}
-
+  // background:blue;
   &:before {
     position: absolute;
     content: "";
@@ -77,14 +78,13 @@ const HorizontalBorderStyles: any = css<{
   &::after {
     position: absolute;
     content: "";
-    width: 6px;
+    width: 12px;
     height: 6px;
-    border-radius: 50%;
-    background: ${(props) =>
-    props.showLightBorder
-      ? theme.colors.widgetLightBorder
-      : theme.colors.widgetBorder};
-    left: calc(50% - 3px);
+    box-sizing: border-box;
+    border-radius: 2px;
+    border: 1px solid #2cbba6;
+    background: #FFF;
+    left: calc(50% - 6px);
   }
 `
 
@@ -94,50 +94,52 @@ const CornerHandleStyles = css`
   z-index: 3;
   width: ${EDGE_RESIZE_HANDLE_WIDTH}px;
   height: ${EDGE_RESIZE_HANDLE_WIDTH}px;
+  // background:blue;
 `
 
 export const LeftBorderStyles = styled.div`
   ${VerticalBorderStyles};
+  left: -${EDGE_RESIZE_HANDLE_WIDTH}px;
   &::before {
-    left: -${WIDGET_PADDING}px;
+    left: ${1.5}px;
   }
   &::after {
-    left: -${EDGE_RESIZE_HANDLE_WIDTH + 1}px;
+    left: -${1}px;
   }
 `
 
 export const RightBorderStyles = styled.div`
   ${VerticalBorderStyles};
-  right: 0px;
+  right: -${EDGE_RESIZE_HANDLE_WIDTH}px;
 
   &::before {
-    right: -${WIDGET_PADDING}px;
+    right: ${1.5}px;
   }
 
   &::after {
-    right: -${EDGE_RESIZE_HANDLE_WIDTH + 1}px;
+    right: -${1}px;
   }
 `
 
 export const TopBorderStyles = styled.div`
   ${HorizontalBorderStyles};
-  top: 0px;
+  top: -${EDGE_RESIZE_HANDLE_WIDTH}px;
   &:before {
-    top:  -${WIDGET_PADDING}px;
+    top:${1.5}px;
   }
    &::after {
-    top:-${EDGE_RESIZE_HANDLE_WIDTH + 1}px;
+    top:-${1}px;
   }
 `
 
 export const BottomBorderStyles = styled.div`
   ${HorizontalBorderStyles};
-  bottom: 0px;
+  bottom: -${EDGE_RESIZE_HANDLE_WIDTH}px;
   &:before {
-    bottom:  -${WIDGET_PADDING}px;
+    bottom: ${1.5}px;
   }
    &::after {
-    top:${EDGE_RESIZE_HANDLE_WIDTH + 1}px;
+    top:${1}px;
   }
 `
 
@@ -145,8 +147,8 @@ export const BottomRightBorderStyles = styled.div<{
   showAsBorder: boolean;
 }>`
   ${CornerHandleStyles};
-  bottom: -${EDGE_RESIZE_HANDLE_WIDTH / 2}px;
-  right: -${EDGE_RESIZE_HANDLE_WIDTH / 2}px;
+  bottom: -${EDGE_RESIZE_HANDLE_WIDTH}px;
+  right: -${EDGE_RESIZE_HANDLE_WIDTH}px;
   ${(props) => (!props.showAsBorder ? "cursor: se-resize;" : "")}
 `
 
@@ -154,23 +156,23 @@ export const BottomLeftBorderStyles = styled.div<{
   showAsBorder: boolean;
 }>`
   ${CornerHandleStyles};
-  left: -${EDGE_RESIZE_HANDLE_WIDTH / 2}px;
-  bottom: -${EDGE_RESIZE_HANDLE_WIDTH / 2}px;
+  left: -${EDGE_RESIZE_HANDLE_WIDTH }px;
+  bottom: -${EDGE_RESIZE_HANDLE_WIDTH }px;
   ${(props) => (!props.showAsBorder ? "cursor: sw-resize;" : "")}
 `
 export const TopLeftBorderStyles = styled.div<{
   showAsBorder: boolean;
 }>`
   ${CornerHandleStyles};
-  left: -${EDGE_RESIZE_HANDLE_WIDTH / 2}px;
-  top: -${EDGE_RESIZE_HANDLE_WIDTH / 2}px;
+  left: -${EDGE_RESIZE_HANDLE_WIDTH }px;
+  top: -${EDGE_RESIZE_HANDLE_WIDTH }px;
   ${(props) => (!props.showAsBorder ? "cursor: nw-resize;" : "")}
 `
 export const TopRightBorderStyles = styled.div<{
   showAsBorder: boolean;
 }>`
   ${CornerHandleStyles};
-  right: -${EDGE_RESIZE_HANDLE_WIDTH / 2}px;
-  top: -${EDGE_RESIZE_HANDLE_WIDTH / 2}px;
+  right: -${EDGE_RESIZE_HANDLE_WIDTH }px;
+  top: -${EDGE_RESIZE_HANDLE_WIDTH }px;
   ${(props) => (!props.showAsBorder ? "cursor: ne-resize;" : "")}
 `

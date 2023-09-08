@@ -1,5 +1,6 @@
 import { WIDGET_PADDING } from '@/constant/widget';
 import { useAppSelector } from '@/hooks/redux';
+import { isResizingSelector } from '@/store/slices/dragResize';
 import { getReflowByIdSelector } from '@/store/slices/widgetReflowSlice';
 import equal from "fast-deep-equal"
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
@@ -28,9 +29,10 @@ export default function PositionedContainer(props: PositionedContainer) {
   /** 在reflow中的样式*/
   const reflowedPosition = useAppSelector(getReflowByIdSelector(widgetId), equal)
 
+  // const isResizing = useAppSelector(isResizingSelector)
   const top = useMemo(() => {
     return topRow * parentRowSpace
-  }, [topRow, parentRowSpace,widgetId])
+  }, [topRow, parentRowSpace, widgetId])
 
   const left = useMemo(() => {
     return leftColumn * parentColumnSpace
@@ -40,7 +42,7 @@ export default function PositionedContainer(props: PositionedContainer) {
   /** reflow时的样式*/
   const reflowedPositionStyles: React.CSSProperties = useMemo(() => {
     const reflowX = reflowedPosition?.X || 0;
-    const reflowY = reflowedPosition?.Y || 0;   
+    const reflowY = reflowedPosition?.Y || 0;
 
     if (reflowedPosition) {
       return {

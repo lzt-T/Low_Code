@@ -42,7 +42,7 @@ export const dragResizeSlice = createSlice({
       } else {
         state.curFocusedWidgetId = action.payload
       }
-      // state.curFocusedWidgetId = 'temp_button_widget_id'
+      // state.curFocusedWidgetId = 'one'
     },
 
     selectMultipleWidgets: (state, action: PayloadAction<{ widgetIds: string[] }>) => {
