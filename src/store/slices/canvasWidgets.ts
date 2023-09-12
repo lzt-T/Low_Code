@@ -6,48 +6,6 @@ import { RenderModes } from "@/interface/canvas"
 
 
 
-// const buttons = {}
-// const children = []
-// for (let i = 0; i < 30; i++) {
-//   const button = {
-//     widgetId: "button" + i,
-//     leftColumn: (i * 10) % 50 + 5,
-//     rightColumn: ((i * 10) % 50) + 15,
-//     topRow: 4 * Math.floor(i / 5) + 12,
-//     bottomRow: 4 * Math.floor(i / 5) + 16,
-//     parentColumnSpace: (375 - 8) / 64,
-//     parentRowSpace: 10,
-//     parentId: "0",
-//     type: "BUTTON_WIDGET",
-//     widgetName: "Button Widget" + i,
-//   }
-//   buttons["button" + i] = button
-//   children.push('button' + i)
-// }
-
-// const CanvasInfo = {
-//   0: {
-//     type: "CANVAS_WIDGET",
-//     widgetId: "0",
-//     topRow: 0,
-//     bottomRow: Math.ceil(380),
-//     renderMode: "CANVAS",
-//     canExtend: true,
-//     widgetName: "MainContainer",
-//     detachFromLayout: true,
-//     parentColumnSpace: 1,
-//     parentRowSpace: 1,
-//     leftColumn: 0,
-//     rightColumn: 375,
-//     version: 1,
-//     isLoading: false,
-//     children: children,
-//     snapColumns: 64,
-//     noPad: false,
-//   },
-//   ...buttons,
-// }
-
 const initialState: {
   [propName: string]: {
     topRow: number,
