@@ -108,5 +108,8 @@ export const isResizingSelector = (state: RootState) => {
 export const dragDetailsSelector = (state: RootState) => {
   return state.ui.dragResize.dragDetails
 }
+export const curFocusedWidgetIdSelector = (state: RootState) => {
+  return state.ui.dragResize.curFocusedWidgetId
+}
 
 export default dragResizeSlice.reducer

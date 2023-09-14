@@ -74,7 +74,7 @@ export default function ReflowResizable(props: ReflowResizableProps) {
 
 
   return (
-    <animated.div style={{ ...styles, position: 'relative' }} ref={resizableRef}>
+    <animated.div className='resize' style={{ ...styles, position: 'relative' }} ref={resizableRef}>
       {children}
       {enableResize
         &&

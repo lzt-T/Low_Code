@@ -69,6 +69,13 @@ const initialState: { dsl: any } = {
         type: "BUTTON_WIDGET",
         widgetId: "five"
       },
+      {
+        parentId: MAIN_CONTAINER_WIDGET_ID,
+        // bottomRow: 10,
+        // topRow: 4,
+        type: "BUTTON_WIDGET",
+        widgetId: "six"
+      },
      
       // {
       //   parentId: MAIN_CONTAINER_WIDGET_ID,

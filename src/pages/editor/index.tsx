@@ -37,7 +37,7 @@ export default function Editor() {
   
     /** 建立状态图*/
     let spaceGraph = buildGraph(widgetList as any);
-    dispatch(setWidgetsSpaceGraphAccording(widgetList));
+    dispatch(setWidgetsSpaceGraphAccording({...spaceGraph}));
     dispatch(setWidgetsSpaceGraph(spaceGraph));
     
   }, [canvasWidgetsChildrenDetail])

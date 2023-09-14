@@ -65,7 +65,7 @@ const widgetReflowSlice = createSlice({
       state.reflowingWidgets = { ...action.payload }
     },
     setWidgetsSpaceGraph(state, action) { 
-      state.widgetsSpaceGraph = action.payload;
+      state.widgetsSpaceGraph = { ...action.payload };
     },
     setWidgetsSpaceGraphAccording(state, action) { 
       state.widgetsSpaceGraphAccording = action.payload;
