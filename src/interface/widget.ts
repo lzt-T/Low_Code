@@ -26,3 +26,9 @@ export interface WidgetRowCols {
   leftColumn: number;
   rightColumn: number;
 }
+
+export interface WidgetsRowCols { 
+  [widgetId: string]: WidgetRowCols
+}
+
+
