@@ -8,6 +8,7 @@ import { WIDGET_PADDING } from "@/constant/widget";
 import WidgetFactory from "@/widgets/WidgetFactory";
 import { compact, map, sortBy } from "lodash"
 import { getCanvasSnapRows } from "@/utils/WidgetPropsUtils";
+import CanvasDraggingArena from "../components/CanvasDraggingArena";
 
 interface ContainerWidgetProps extends WidgetProps { }
 
@@ -43,7 +44,7 @@ class ContainerWidget extends BaseWidget<ContainerWidgetProps, ContainerWidgetSt
   }
 
   renderChildWidget(childWidgetData: WidgetProps): ReactNode {
-    
+
     const childWidget = { ...childWidgetData }
 
     // const { componentHeight, componentWidth } = this.getComponentDimensions()
@@ -56,7 +57,7 @@ class ContainerWidget extends BaseWidget<ContainerWidgetProps, ContainerWidgetSt
     // childWidget.canExtend = this.props.shouldScrollContents
 
     // childWidget.parentId = this.props.widgetId;
- 
+
 
     return WidgetFactory.createWidget(childWidget, this.props.renderMode)
   }
@@ -64,7 +65,7 @@ class ContainerWidget extends BaseWidget<ContainerWidgetProps, ContainerWidgetSt
   renderChildren() {
     const that = this
     /** 将孩子按照topRow从小到大排序*/
-    return map(sortBy(compact(this.props.children), (child: any) => child.topRow), (data) => {  
+    return map(sortBy(compact(this.props.children), (child: any) => child.topRow), (data) => {
       return that.renderChildWidget(data)
     },
     )
@@ -72,23 +73,26 @@ class ContainerWidget extends BaseWidget<ContainerWidgetProps, ContainerWidgetSt
 
   renderAsContainerComponent(props: ContainerWidgetProps) {
     const snapRows = getCanvasSnapRows(props)
+    let height = snapRows * GridDefaults.DEFAULT_GRID_ROW_HEIGHT
     return (
       <ContainerComponent {...props}>
-        {/* {
+        {
           props.type === 'CANVAS_WIDGET' &&
-          // props.renderMode === RenderModes.CANVAS &&
+          //  props.renderMode === RenderModes.CANVAS &&
           (
+
             <CanvasDraggingArena
               {...this.getSnapSpaces()}
-              canExtend={props.canExtend}
-              dropDisabled={!!props.dropDisabled}
-              noPad={this.props.noPad}
-              parentId={props.parentId}
-              snapRows={snapRows}
+              // canExtend={props.canExtend}
+              // dropDisabled={!!props.dropDisabled}
+              // noPad={this.props.noPad}
+              // parentId={props.parentId}
+              // snapRows={snapRows}
               widgetId={props.widgetId}
             />
           )
-        } */}
+        }
+        {/* 画布上的widget */}
         <>{this.renderChildren()}</>
       </ContainerComponent>
     )

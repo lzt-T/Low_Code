@@ -13,7 +13,7 @@ export const config: IWidgetConfiguration = {
   defaults: {
     rows: 4,
     columns: 20,
-    // widgetName: '按钮',
+    widgetName: "Button Widget",
     text: '按钮',
     isDisabled: false,
     isVisible: true,

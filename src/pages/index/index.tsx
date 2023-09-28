@@ -8,19 +8,22 @@ export default function Index() {
   return (
     <FrameSty>
       <div style={{
-        width: '180px'
+        width: '300px'
       }}>
         <LeftSidebar />
       </div>
-      <div style={{
+      <div
+        className='scrollElement'
+        style={{
         flex: '1',
         display: 'flex',
-        justifyContent:"center"
+        justifyContent: "center",
+        overflowY: "auto",
       }}>
         <Editor />
       </div>
       <div style={{
-        width: '180px'
+        width: '300px'
       }}>
         <RightSidebar />
       </div>

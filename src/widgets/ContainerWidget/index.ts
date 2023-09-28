@@ -11,7 +11,7 @@ export const CONFIG: any = {
     backgroundColor: "#FFFFFF",
     rows: 30,
     columns: 40,
-    widgetName: "Container",
+    widgetName: "Container Widget",
     containerStyle: "card",
     borderColor:"#E0DEDE",
     borderWidth: "1",

@@ -1,6 +1,11 @@
 //widget的初始值
+import { WidgetConfigs } from '@/interface/widget'
 import { createSlice } from '@reduxjs/toolkit'
-const initialState: any = { configs: {} }
+const initialState: {
+  configs: {
+    [propName: string]: WidgetConfigs
+  }
+} = { configs: {} }
 
 export const widgetConfigSlice = createSlice({
   name: 'widgetConfigSlice',

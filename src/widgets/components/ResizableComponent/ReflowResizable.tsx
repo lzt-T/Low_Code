@@ -1,10 +1,11 @@
-import React, { useCallback, useMemo, useRef } from "react"
+import React, { useCallback, useEffect, useMemo, useRef } from "react"
 import { get, omit } from "lodash"
 import { WidgetProps } from "@/interface/widget"
 import { animated, useSpring } from 'react-spring'
 import ResizeBorder from "./ResizeBorder"
 import { WIDGET_PADDING } from "@/constant/widget"
 import { useResize } from "@/hooks/useResize"
+import { getNearestParentCanvas } from "@/utils/helpers"
 
 interface ReflowResizableProps {
   parentId?: string;
@@ -21,7 +22,8 @@ interface ReflowResizableProps {
 export default function ReflowResizable(props: ReflowResizableProps) {
   const { enableResize, children, topRow, bottomRow, leftColumn,
     rightColumn, parentColumnSpace, parentRowSpace, widgetId,parentId } = props
-  const resizableRef = useRef<any>()
+  const resizableRef = useRef<any>(null)
+  const scrollParent: Element | null = getNearestParentCanvas(resizableRef.current)
 
   /** 原始widget大小*/
   const dimensions: any = useMemo(() => {
@@ -73,6 +75,12 @@ export default function ReflowResizable(props: ReflowResizableProps) {
   })
 
 
+  useEffect(() => {
+    // console.log(resizableRef.current,'asdasdas');
+    
+  },[])
+
+
   return (
     <animated.div className='resize' style={{ ...styles, position: 'relative' }} ref={resizableRef}>
       {children}
@@ -85,7 +93,7 @@ export default function ReflowResizable(props: ReflowResizableProps) {
           onResizeStart={onResizeStart}
           onResizeStop={onResizeStop}
           onResizeDrag={onResizeDrag}
-          scrollParent={resizableRef.current}
+          scrollParent={scrollParent}
         />
       }
     </animated.div>

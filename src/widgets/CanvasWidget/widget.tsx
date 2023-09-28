@@ -26,7 +26,7 @@ export default class CanvasWidget extends ContainerWidget {
   renderAsDropTarget() {
     const canvasProps = this.getCanvasProps()
     /** 画布单元格的宽高值*/
-    const snapSpace=this.getSnapSpaces()
+    const snapSpace = this.getSnapSpaces()
 
     return (
       <DropTargetComponent

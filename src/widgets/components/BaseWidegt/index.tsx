@@ -4,6 +4,7 @@ import PositionedContainer from '../PositionedContainer';
 import ResizableComponent from '../ResizableComponent';
 import DraggableComponent from '../DraggableComponent';
 import { RenderModes } from '@/interface/canvas';
+import WidgetNameComponent from '../WidgetName';
 
 
 
@@ -105,6 +106,28 @@ abstract class BaseWidget<T extends WidgetProps, K extends any> extends Componen
     )
   }
 
+   /**
+   * 显示widget名称及配置按钮
+   * @param content 组件
+   * @param showControls 控件
+   * @returns
+   */
+   showWidgetName(content: ReactNode, showControls = false) {
+    return (
+      <>
+        <WidgetNameComponent
+          // parentId={this.props.parentId}
+          // showControl={showControls}
+          // topRow={this.props.detachFromLayout ? 4 : this.props.topRow}
+          // type={this.props.type}
+          widgetName={this.props.widgetName}
+          widgetId={this.props.widgetId}
+        />
+        {content}
+      </>
+    )
+  }
+
   private getWidgetView(): ReactNode {
     let content: ReactNode
     switch (this.props.renderMode) {
@@ -112,6 +135,7 @@ abstract class BaseWidget<T extends WidgetProps, K extends any> extends Componen
         content = this.getWidgetComponent()
         //当为true时不能变化大小
         if (!this.props.resizeDisabled) content = this.makeResizable(content)
+        content = this.showWidgetName(content)
         /** 拖拽*/
         content = this.makeDraggable(content)
         /** 定位*/

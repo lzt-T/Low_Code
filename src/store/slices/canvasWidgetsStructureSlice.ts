@@ -76,21 +76,6 @@ const initialState: { dsl: any } = {
         type: "BUTTON_WIDGET",
         widgetId: "six"
       },
-     
-      // {
-      //   parentId: MAIN_CONTAINER_WIDGET_ID,
-      //   bottomRow: 31,
-      //   topRow: 25,
-      //   type: "BUTTON_WIDGET",
-      //   widgetId: "test_two_button_id"
-      // },
-      // {
-      //   parentId: MAIN_CONTAINER_WIDGET_ID,
-      //   bottomRow: 31,
-      //   topRow: 25,
-      //   type: "BUTTON_WIDGET",
-      //   widgetId: "test_three_button_id"
-      // }
     ],
   }
 }
@@ -105,8 +90,18 @@ const canvasWidgetsStructure = createSlice({
     ) => {
       state.dsl = { ...denormalize(MAIN_CONTAINER_WIDGET_ID, action.payload.widgets) }
     },
+
+    /** 初步这个这样，后面再改变*/
+    addWidgetStructure: (state,action) => {
+      state.dsl.children.push(action.payload)
+    },
   },
 })
+
+
+export const {
+  addWidgetStructure
+} = canvasWidgetsStructure.actions
 
 /** 获取画布中的widget结构*/
 export const getCanvasWidgetDsl = (state: RootState) => state.canvasWidgetsStructure.dsl

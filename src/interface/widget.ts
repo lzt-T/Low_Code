@@ -31,4 +31,25 @@ export interface WidgetsRowCols {
   [widgetId: string]: WidgetRowCols
 }
 
+export interface WidgetConfigs{
+  columns:number
+  detachFromLayout :boolean,
+  displayName:string
+  iconSVG: string,
+  key:string
+  rows:number,
+  searchTags:any,
+  type: string,
+  [propName: string]: any
+}
 
+export interface IWidgetCard  {
+  columns: number
+  detachFromLayout: boolean,
+  displayName: string
+  icon: string,
+  key: string
+  rows: number,
+  searchTags: any,
+  type: string,
+}

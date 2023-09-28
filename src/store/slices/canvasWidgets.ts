@@ -3,6 +3,7 @@ import { CANVAS_DEFAULT_MIN_ROWS, GridDefaults, MAIN_CONTAINER_WIDGET_ID } from 
 import { createSelector, createSlice } from "@reduxjs/toolkit"
 import { RootState } from ".."
 import { RenderModes } from "@/interface/canvas"
+import { addWidgetStructure } from "./canvasWidgetsStructureSlice"
 
 
 
@@ -16,12 +17,13 @@ const initialState: {
     parentRowSpace: number,
     [propNams: string]: any
   }
-} ={
+} = {
   0: {
     type: "CANVAS_WIDGET",
     widgetId: MAIN_CONTAINER_WIDGET_ID,
     topRow: 0,
-    bottomRow: CANVAS_DEFAULT_MIN_ROWS * GridDefaults.DEFAULT_GRID_ROW_HEIGHT, //380
+    // bottomRow: CANVAS_DEFAULT_MIN_ROWS * GridDefaults.DEFAULT_GRID_ROW_HEIGHT, //380
+    bottomRow: 2000, //200行
     renderMode: RenderModes.CANVAS,
     canExtend: true,
     widgetName: "MainContainer",
@@ -32,7 +34,7 @@ const initialState: {
     rightColumn: 375,
     version: 1,
     isLoading: false,
-    children: ['one', 'two', 'three', 'four', 'five','six'],
+    children: ['one', 'two', 'three', 'four', 'five', 'six'],
     snapColumns: 64,
     noPad: true,
   },
@@ -135,8 +137,8 @@ const initialState: {
     widgetId: 'six',
     leftColumn: 2,
     rightColumn: 45,
-    topRow: 26,
-    bottomRow: 32,
+    topRow: 150,
+    bottomRow: 170,
     parentId: '0',
     type: 'BUTTON_WIDGET',
     widgetName: 'Button Widget',
@@ -165,7 +167,7 @@ const canvasWidgetsSlice = createSlice({
       state = action.payload.widgets
     },
 
-    /** 更新widget信息*/
+    /** 更新单个widget信息*/
     updateWidgetAccordingWidgetId: (
       state,
       action: {
@@ -181,7 +183,7 @@ const canvasWidgetsSlice = createSlice({
       }
     },
 
-    /** 更新widgets信息*/
+    /** 更新多个widget信息*/
     updateWidgets: (
       state,
       action: {
@@ -197,6 +199,12 @@ const canvasWidgetsSlice = createSlice({
           ...item,
         }
       })
+    },
+
+    /** 增加widget*/
+    addWidget: (state, action) => {
+      state[action.payload.parentId].children.push(action.payload.widgetId)
+      state[action.payload.widgetId] = action.payload
     }
   }
 })
@@ -260,6 +268,38 @@ export const getWidgetChildrenDetailSelector = (parentWidgetId: string) => {
       return resultList
     }
   )
+}
+
+export const addNewWidgetChunk = (position: any, parentUnit: any) => {
+  return (dispatch: any, getState: any) => {
+    const state = getState()
+    let newWidgetInfo = state.ui.dragResize.dragDetails.newWidget;
+    let parentId = state.ui.dragResize.dragDetails.draggedOn;
+    let otherInfo = state.widgetConfigs.configs[newWidgetInfo.type]
+
+    let newWidgetProps = {
+      widgetId: newWidgetInfo.widgetId,
+      parentId,
+      type: newWidgetInfo.type,
+      topRow: position.topRow,
+      bottomRow: position.bottomRow,
+      leftColumn: position.leftColumn,
+      rightColumn: position.rightColumn,
+      parentRowSpace: parentUnit.rowSpace,
+      parentColumnSpace: parentUnit.columnSpace,
+      ...otherInfo,
+    }
+
+    dispatch(canvasWidgetsSlice.actions.addWidget(newWidgetProps))
+
+    dispatch(addWidgetStructure(
+      {
+        parentId,
+        type: newWidgetInfo.type,
+        widgetId: newWidgetInfo.widgetId,
+      }
+    ))
+  }
 }
 
 export default canvasWidgetsSlice.reducer

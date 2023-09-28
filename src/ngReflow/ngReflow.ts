@@ -52,8 +52,7 @@ function createRelations(currentSpace: OccupiedSpace, overlappedSpaces: Occupied
   // 标志位，用于检查 Space 是否和已经处理过的 Space 有重叠。已经处理过的 Space 将对应位置的 flag 进行相应设置。
   // 长度由最右（下）边的坐标决定。0 代表该列未被占用，1 代表该列已被占用。
   
-  const flagLength = overlappedSpaces.reduce((max, space) => Math.max(max, space[accessor.perpendicularMaxAttr]), 0) + 1
-  
+  let flagLength = overlappedSpaces.reduce((max, space) => Math.max(max, space[accessor.perpendicularMaxAttr]), 0) + 1
   const flags = new Array(flagLength).fill(0)
 
   // 左（上）边的 Spaces

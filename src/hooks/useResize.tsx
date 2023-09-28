@@ -46,7 +46,7 @@ export interface DimensionProps {
   direction: ReflowDirection;
 }
 
-type WidgetReSizeInfo = {
+export type WidgetReSizeInfo = {
   direction: ReSizeDirection,
   leftColumn: number
   rightColumn: number,
@@ -56,7 +56,7 @@ type WidgetReSizeInfo = {
   moveCriticalValue: number
 }
 
-type ReflowData = {
+export type ReflowData = {
   [propName: string]: {
     X: number,
     Y: number,
@@ -854,8 +854,8 @@ export const useResize = (props: UseResizeProps) => {
     const { startUnitLen, unit, endUnitLen, moveDistance, moveAxis,
       startBoundary, endBoundary, oppositeDirection
     } = widgetMoveInfoCondition[direction];
-    let mouseStartBoundary: any;
-    let mouseEndBoundary: any;
+    let mouseStartBoundary: number;
+    let mouseEndBoundary: number;
     let boundary: any;
     let curWidgetPosition;
     let moveCriticalValue = 0;
@@ -949,7 +949,6 @@ export const useResize = (props: UseResizeProps) => {
   * @param direction {ReSizeDirection}  
   * @returns
   */
-  /** */
   const setDirectionWidgetsReflowData = useCallback((
     mouseMoveDistance: number,
     direction: ReSizeDirection
@@ -1030,7 +1029,7 @@ export const useResize = (props: UseResizeProps) => {
         if (direction === ReSizeDirection.LEFT || direction === ReSizeDirection.RIGHT) {
           X = mouseMoveDistance - value.moveCriticalValue
         }
-        if (isMoveCondition[direction](value)) {
+        if (isMoveCondition[direction](value)) { 
           temporaryMoveReflowData = getCollisionReflowData(key,
             (mouseMoveDistance - value.moveCriticalValue) / unit,
             direction,
@@ -1104,6 +1103,8 @@ export const useResize = (props: UseResizeProps) => {
     reflowData.current = {};
     widgetsDistanceInfo.current = {};
 
+    // console.log(x,y);
+  
     let topMaxWidgetNum = 0;
     let bottomMaxWidgetNum = 0;
     let leftMaxWidgetNum = 0;

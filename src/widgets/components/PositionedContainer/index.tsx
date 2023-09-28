@@ -56,10 +56,7 @@ export default function PositionedContainer(props: PositionedContainer) {
   }, [reflowedPosition])
 
 
-  const containerStyle: React.CSSProperties = useMemo(() => {
-
-    // console.log(reflowedPosition?.width,componentWidth);
-    
+  const containerStyle: React.CSSProperties = useMemo(() => {  
 
     let style: React.CSSProperties = {
       position: 'absolute',

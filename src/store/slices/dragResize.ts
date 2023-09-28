@@ -7,7 +7,10 @@ interface DragResizeState {
   isDragging: boolean;
   isResizing: boolean;
   isDraggingDisabled: boolean;
-  dragDetails: any,
+  dragDetails: {
+    newWidget: any;
+    draggedOn: string;
+  },
   selectedWidgets: string[], //选择中的widget
   curFocusedWidgetId?: string; // 当前激活的部件
   lastSelectedWidget: string; // 最后选中的部件
@@ -17,7 +20,10 @@ const initialState: DragResizeState = {
   isDragging: false,
   isResizing: false,
   isDraggingDisabled: false,
-  dragDetails: {},
+  dragDetails: {
+    newWidget: {},
+    draggedOn: '',
+  },
   selectedWidgets: [],
   curFocusedWidgetId: undefined,
   lastSelectedWidget: "",
@@ -44,6 +50,38 @@ export const dragResizeSlice = createSlice({
       }
       // state.curFocusedWidgetId = 'one'
     },
+    /**
+     * 开始拖拽新部件
+     * @param state
+     * @param action
+     */
+    setNewWidgetDragging: (
+      state,
+      action: PayloadAction<{
+        isDragging: boolean;
+        newWidgetProps?: any
+      }>
+    ) => {
+
+      document.body.style.cursor = "grabbing"
+      state.isDragging = action.payload.isDragging
+      state.dragDetails = {
+        newWidget: action.payload.newWidgetProps,
+        draggedOn: MAIN_CONTAINER_WIDGET_ID,
+      }
+    },
+
+    /**
+    * 拖拽的目标画布
+    * @param state
+    * @param action
+    */
+    setDraggingCanvas: (
+      state,
+      action: PayloadAction<{ draggedOn?: string }>
+    ) => {
+      state.dragDetails.draggedOn = action.payload.draggedOn || '';
+    },
 
     selectMultipleWidgets: (state, action: PayloadAction<{ widgetIds: string[] }>) => {
       // const { widgetIds } = action.payload
@@ -63,7 +101,7 @@ export const dragResizeSlice = createSlice({
      */
     selectWidget: (
       state,
-      action: {payload:string},
+      action: { payload: string },
     ) => {
       state.selectedWidgets = [action.payload]
 
@@ -75,6 +113,28 @@ export const dragResizeSlice = createSlice({
       // }
     },
 
+    /**
+    * @description
+    * @param 
+    * @returns
+    */
+    setIsDragging: (state,action) => {
+      state.isDragging = action.payload
+    },
+
+    /**
+    * @description 结束拖拽
+    * @param 
+    * @returns
+    */
+    endDragging: (state) => {
+      state.isDragging = false
+      state.dragDetails = {
+        newWidget: {},
+        draggedOn: '',
+      }
+      document.body.style.cursor = "default"
+    },
 
     /**
      * @description 开始调整元素大小
@@ -96,7 +156,11 @@ export const dragResizeSlice = createSlice({
 export const {
   focusWidget,
   setWidgetResizing,
-  selectWidget
+  selectWidget,
+  setNewWidgetDragging,
+  setDraggingCanvas,
+  endDragging,
+  setIsDragging
 } = dragResizeSlice.actions
 
 export const isDraggingSelector = (state: RootState) => {

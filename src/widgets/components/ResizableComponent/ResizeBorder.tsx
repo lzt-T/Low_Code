@@ -12,6 +12,8 @@ import {
 } from './ResizeableStyle'
 import ResizableHandle from './ResizableHandle'
 import { ReflowDirection } from '@/enum/move'
+import { isResizingSelector } from '@/store/slices/dragResize'
+import { useAppSelector } from '@/hooks/redux'
 
 interface ResizeBorderProps {
   widgetDimension: any,
@@ -38,7 +40,26 @@ export default function ResizeBorder(props: ResizeBorderProps) {
     dimensions, widgetDimension
   } = props;
 
+  /** 是否处于调整大小状态*/
+  const isResizing = useAppSelector(isResizingSelector)
   const [borderList, setBorderList] = useState([])
+
+  let lastMouseMove = useRef({
+    x: 0,
+    y: 0,
+    scrollY: 0,
+    direction: ReflowDirection.UNSET,
+    /** 中断的Y值*/
+    breakY: 0,
+  })
+
+  let lastMouseScroll = useRef({
+    x: 0,
+    y: 0,
+    /** 中断的Y值*/
+    breakY: 0,
+  })
+
   const allBorders: Record<string, any> = useMemo(() => {
     return {
       leftBorderEle: LeftBorderStyles,
@@ -52,6 +73,40 @@ export default function ResizeBorder(props: ResizeBorderProps) {
     }
   }, [])
 
+  /** 停止调整大小*/
+  const onResizeStopFn = useCallback(() => {
+    onResizeStop()
+    lastMouseMove.current = {
+      x: 0,
+      y: 0,
+      scrollY: 0,
+      direction: ReflowDirection.UNSET,
+      breakY: 0,
+    }
+    lastMouseScroll.current = {
+      x: 0,
+      y: 0,
+      breakY: 0,
+    }
+  }, [onResizeStop])
+
+
+  const onResizeDragFn = useCallback((x: number, y: number, direction: ReflowDirection) => {
+    onResizeDrag({
+      x,
+      y: lastMouseScroll.current.y + (y - lastMouseScroll.current.breakY),
+      direction,
+    })
+    lastMouseMove.current = {
+      x,
+      y: lastMouseScroll.current.y + (y - lastMouseScroll.current.breakY),
+      scrollY: scrollParent.scrollTop,
+      direction,
+      breakY: y,
+    }
+  }, [scrollParent])
+
+
   /** 设置边框dom*/
   useEffect(() => {
     let list: any = [];
@@ -59,11 +114,7 @@ export default function ResizeBorder(props: ResizeBorderProps) {
       list.push({
         Component: allBorders.topBorderEle,
         onDrag: (x: number, y: number) => {
-          onResizeDrag({
-            x,
-            y,
-            direction: ReflowDirection.TOP,
-          })
+          onResizeDragFn(x, y, ReflowDirection.TOP)
         }
       })
     }
@@ -71,23 +122,15 @@ export default function ResizeBorder(props: ResizeBorderProps) {
       list.push({
         Component: allBorders.bottomBorderEle,
         onDrag: (x: number, y: number) => {
-          onResizeDrag({
-            x,
-            y,
-            direction: ReflowDirection.BOTTOM,
-          })
+          onResizeDragFn(x, y, ReflowDirection.BOTTOM)
         }
       })
     }
     if (allBorders.leftBorderEle) {
       list.push({
         Component: allBorders.leftBorderEle,
-        onDrag: (x: number, y: number) => {   
-          onResizeDrag({
-            x,
-            y,
-            direction: ReflowDirection.LEFT,
-          })
+        onDrag: (x: number, y: number) => {
+          onResizeDragFn(x, y, ReflowDirection.LEFT)
         }
       })
     }
@@ -95,11 +138,7 @@ export default function ResizeBorder(props: ResizeBorderProps) {
       list.push({
         Component: allBorders.rightBorderEle,
         onDrag: (x: number, y: number) => {
-          onResizeDrag({
-            x,
-            y,
-            direction: ReflowDirection.RIGHT,
-          })
+          onResizeDragFn(x, y, ReflowDirection.RIGHT)
         }
       })
     }
@@ -107,11 +146,7 @@ export default function ResizeBorder(props: ResizeBorderProps) {
       list.push({
         Component: allBorders.topLeftBorderEle,
         onDrag: (x: number, y: number) => {
-          onResizeDrag({
-            x,
-            y,
-            direction: ReflowDirection.TOPLEFT,
-          })
+          onResizeDragFn(x, y, ReflowDirection.TOPLEFT)
         }
       })
     }
@@ -119,11 +154,7 @@ export default function ResizeBorder(props: ResizeBorderProps) {
       list.push({
         Component: allBorders.topRightBorderEle,
         onDrag: (x: number, y: number) => {
-          onResizeDrag({
-            x,
-            y,
-            direction: ReflowDirection.TOPRIGHT,
-          })
+          onResizeDragFn(x, y, ReflowDirection.TOPRIGHT)
         }
       })
     }
@@ -131,11 +162,7 @@ export default function ResizeBorder(props: ResizeBorderProps) {
       list.push({
         Component: allBorders.bottomLeftBorderEle,
         onDrag: (x: number, y: number) => {
-          onResizeDrag({
-            x,
-            y,
-            direction: ReflowDirection.BOTTOMLEFT,
-          })
+          onResizeDragFn(x, y, ReflowDirection.BOTTOMLEFT)
         }
       })
     }
@@ -143,17 +170,38 @@ export default function ResizeBorder(props: ResizeBorderProps) {
       list.push({
         Component: allBorders.bottomRightBorderEle,
         onDrag: (x: number, y: number) => {
-          onResizeDrag({
-            x,
-            y,
-            direction: ReflowDirection.BOTTOMRIGHT,
-          })
+          onResizeDragFn(x, y, ReflowDirection.BOTTOMRIGHT)
         }
       })
     }
-
     setBorderList(list)
-  }, [allBorders, dimensions])
+  }, [allBorders, dimensions, scrollParent, onResizeDragFn])
+
+
+  useEffect(() => {
+    const onScroll = (e: Event) => {
+      if (!isResizing) {
+        return
+      }
+      /** 滚动差值*/
+      let scrollDistance = Math.round((scrollParent.scrollTop - lastMouseMove.current.scrollY) / parentRowSpace) * parentRowSpace;
+      onResizeDrag({
+        x: lastMouseMove.current.x,
+        y: lastMouseMove.current.y + scrollDistance,
+        direction: lastMouseMove.current.direction,
+      })
+      lastMouseScroll.current = {
+        x: lastMouseMove.current.x,
+        y: lastMouseMove.current.y + scrollDistance,
+        breakY: lastMouseMove.current.breakY,
+      }
+    }
+
+    scrollParent.addEventListener('scroll', onScroll)
+    return () => {
+      scrollParent.removeEventListener('scroll', onScroll)
+    }
+  }, [isResizing])
 
   return (
     <>
@@ -164,7 +212,7 @@ export default function ResizeBorder(props: ResizeBorderProps) {
               Component={item.Component}
               onDrag={item.onDrag}
               onStart={onResizeStart}
-              onStop={onResizeStop}
+              onStop={onResizeStopFn}
               key={ind}
               scrollParent={scrollParent}
               snapGrid={{
