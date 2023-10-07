@@ -9,13 +9,17 @@ import { addWidgetStructure } from "./canvasWidgetsStructureSlice"
 
 const initialState: {
   [propName: string]: {
+    widgetId: string,
+    parentId?: string,
+    type: string,
     topRow: number,
     bottomRow: number,
     leftColumn: number,
     rightColumn: number,
     parentColumnSpace: number,
     parentRowSpace: number,
-    [propNams: string]: any
+    // children?: string[],
+    [propName: string]: any
   }
 } = {
   0: {
@@ -34,7 +38,7 @@ const initialState: {
     rightColumn: 375,
     version: 1,
     isLoading: false,
-    children: ['one', 'two', 'three', 'four', 'five', 'six'],
+    children: ['one', 'two', 'three', 'four', 'five', 'six', 'CONTAINER_ONE'],
     snapColumns: 64,
     noPad: true,
   },
@@ -47,15 +51,15 @@ const initialState: {
     parentId: '0',
     type: 'BUTTON_WIDGET',
     widgetName: 'Button Widget',
-    renderMode: RenderModes.CANVAS,
-    isDisabled: false,
-    version: 1,
-    isLoading: false,
+    // renderMode: RenderModes.CANVAS,
+    // isDisabled: false,
+    // version: 1,
+    // isLoading: false,
     text: '1',
     parentColumnSpace: (375 - 8) / 64,
     parentRowSpace: 10,
-    detachFromLayout: false,
-    isVisible: false,
+    // detachFromLayout: false,
+    // isVisible: false,
   },
   'two': {
     widgetId: 'two',
@@ -152,9 +156,46 @@ const initialState: {
     detachFromLayout: false,
     isVisible: false,
   },
-
+  'CONTAINER_ONE': {
+    widgetId: 'CONTAINER_ONE',
+    leftColumn: 2,
+    rightColumn: 45,
+    topRow: 50,
+    bottomRow: 90,
+    parentId: '0',
+    widgetName: 'CONTAINER Widget',
+    type: 'CONTAINER_WIDGET',
+    parentRowSpace: 10,
+    parentColumnSpace: (375 - 8) / 64,
+    children: ['CONTAINER_BUTTON_ONE', 'CONTAINER_BUTTON_TWO'],
+  },
+  'CONTAINER_BUTTON_ONE': {
+    widgetId: 'CONTAINER_BUTTON_ONE',
+    leftColumn: 0,
+    rightColumn: 20,
+    topRow: 6,
+    bottomRow: 12,
+    parentId: 'CONTAINER_ONE',
+    type: 'BUTTON_WIDGET',
+    widgetName: 'Button Widget',
+    text: 'CONTAINER_BUTTON_ONE',
+    parentColumnSpace: (45 - 2 - 1) * ((375 - 8) / 64) / 64,
+    parentRowSpace: 10,
+  },
+  'CONTAINER_BUTTON_TWO': {
+    widgetId: 'CONTAINER_BUTTON_TWO',
+    leftColumn: 2,
+    rightColumn: 50,
+    topRow: 15,
+    bottomRow: 22,
+    parentId: 'CONTAINER_ONE',
+    type: 'BUTTON_WIDGET',
+    widgetName: 'Button Widget',
+    text: 'CONTAINER_BUTTON_TWO',
+    parentColumnSpace: (45 - 2 - 1) * ((375 - 8) / 64) / 64,
+    parentRowSpace: 10,
+  },
 }
-
 const canvasWidgetsSlice = createSlice({
   name: 'canvasWidgets',
   initialState,
@@ -203,7 +244,7 @@ const canvasWidgetsSlice = createSlice({
 
     /** 增加widget*/
     addWidget: (state, action) => {
-      state[action.payload.parentId].children.push(action.payload.widgetId)
+      state[action.payload.parentId].children?.push(action.payload.widgetId)
       state[action.payload.widgetId] = action.payload
     }
   }

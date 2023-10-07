@@ -4,7 +4,7 @@ import { useDispatch } from "react-redux"
 import { useAppSelector } from "./redux"
 import { ReSizeDirection, ReflowDirection } from "@/enum/move";
 import { getReflowByIdSelector, setReflowingWidgets, stopReflow, widgetsSpaceGraphSelector } from "@/store/slices/widgetReflowSlice";
-import { MIN_HEIGHT_ROW, MIN_WIDTH_COLUMN, WIDGET_PADDING } from "@/constant/widget";
+import { COLUM_NUM, MIN_HEIGHT_ROW, MIN_WIDTH_COLUMN, WIDGET_PADDING } from "@/constant/widget";
 import _ from 'lodash'
 import { getWidgetChildrenDetailSelector, getWidgetChildrenSelector, getWidgetsSelector, updateWidgetAccordingWidgetId, updateWidgets } from "@/store/slices/canvasWidgets";
 import { WidgetRowCols, WidgetsRowCols } from "@/interface/widget";
@@ -105,7 +105,8 @@ export const useResize = (props: UseResizeProps) => {
   /** 画布中的widgets*/
   const canvasWidgetsChildrenDetail = useAppSelector(getWidgetChildrenDetailSelector(parentId));
   /** 位置关系图*/
-  const widgetsSpaceGraph = useAppSelector(widgetsSpaceGraphSelector);
+  const widgetsSpaceGraph = useAppSelector(widgetsSpaceGraphSelector)[parentId];
+
   /** 位置关系图*/
   const widgetsSpaceGraphCopy = useRef<any>();
   widgetsSpaceGraphCopy.current = widgetsSpaceGraph
@@ -137,7 +138,7 @@ export const useResize = (props: UseResizeProps) => {
   /** reflow的数据*/
   const reflowData = useRef<ReflowData>({})
   /** 当前元素更新的位置信息*/
-  const updateWidgetRowCol = useRef<WidgetRowCols>();
+  const updateWidgetRowCol = useRef<WidgetRowCols>({} as any);
 
   /** 上一次移动的数据*/
   const lastMoveDistance = useRef<{
@@ -154,7 +155,7 @@ export const useResize = (props: UseResizeProps) => {
   /** 在调整过程中，widget的位置是不断变化的，所以要用currentPosition.current，记录widget当前的位置*/
   const currentPosition = useRef<WidgetsRowCols>({});
   /** 受到碰撞挤压影响需要更新的widget位置信息*/
-  const updateWidgetsPosition = useRef<WidgetsRowCols>({})
+  const updateWidgetsPosition = useRef<any>({})
 
 
   /** 父亲边框位置信息*/
@@ -163,9 +164,10 @@ export const useResize = (props: UseResizeProps) => {
 
     return {
       topRow: 0,
-      bottomRow: parentId === MAIN_CONTAINER_WIDGET_ID ? parent?.bottomRow / parentRowSpace : parent?.bottomRow - parent?.topRow,
+      bottomRow: parentId === MAIN_CONTAINER_WIDGET_ID ? parent?.bottomRow / parentRowSpace : parent?.bottomRow - parent?.topRow - 1,
       leftColumn: 0,
-      rightColumn: parentId === MAIN_CONTAINER_WIDGET_ID ? parent.snapColumns : parent?.rightColumn - parent?.leftColumn,
+      // rightColumn: parentId === MAIN_CONTAINER_WIDGET_ID ? parent.snapColumns : parent?.rightColumn - parent?.leftColumn - 1,
+      rightColumn: 64
     }
   }, [canvasWidgets, parentId, parentRowSpace, parentColumnSpace])
 
@@ -758,6 +760,23 @@ export const useResize = (props: UseResizeProps) => {
       leftColumn = item.leftColumn + reflowData[key].X / parentColumnSpace;
       rightColumn = width ? (item.leftColumn + reflowData[key].X / parentColumnSpace) + width / parentColumnSpace : item.rightColumn + reflowData[key].X / parentColumnSpace;
 
+      //更新画布儿子的ColumnSpace
+      if (item.type === 'CONTAINER_WIDGET') {
+        let childrenList = canvasWidgets[item.widgetId].children
+        let resultParentColumnSpace = canvasWidgets[item.widgetId].parentColumnSpace
+        resultParentColumnSpace = (rightColumn - leftColumn - 1) * resultParentColumnSpace / COLUM_NUM
+
+        for (let childId of childrenList) {
+          resultData = {
+            ...resultData,
+            [childId]: {
+              ...resultData[childId],
+              parentColumnSpace: resultParentColumnSpace
+            }
+          }
+        }
+      }
+
       resultData[key] = {
         topRow,
         bottomRow,
@@ -765,7 +784,6 @@ export const useResize = (props: UseResizeProps) => {
         rightColumn,
       }
     }
-
     return resultData
   }, [canvasWidgets, parentRowSpace, parentColumnSpace])
 
@@ -1029,7 +1047,7 @@ export const useResize = (props: UseResizeProps) => {
         if (direction === ReSizeDirection.LEFT || direction === ReSizeDirection.RIGHT) {
           X = mouseMoveDistance - value.moveCriticalValue
         }
-        if (isMoveCondition[direction](value)) { 
+        if (isMoveCondition[direction](value)) {
           temporaryMoveReflowData = getCollisionReflowData(key,
             (mouseMoveDistance - value.moveCriticalValue) / unit,
             direction,
@@ -1104,7 +1122,7 @@ export const useResize = (props: UseResizeProps) => {
     widgetsDistanceInfo.current = {};
 
     // console.log(x,y);
-  
+
     let topMaxWidgetNum = 0;
     let bottomMaxWidgetNum = 0;
     let leftMaxWidgetNum = 0;
@@ -1377,33 +1395,49 @@ export const useResize = (props: UseResizeProps) => {
         widgetRowCol: updateWidgetRowCol.current
       }
     ))
+    //变化儿子的单位长度
+    if (canvasWidgets[widgetId].type === 'CONTAINER_WIDGET') {
+      let childrenList = canvasWidgets[widgetId].children
+      let resultParentColumnSpace = parentColumnSpace;
+      resultParentColumnSpace = (updateWidgetRowCol.current.rightColumn - updateWidgetRowCol.current.leftColumn - 1) * parentColumnSpace / COLUM_NUM
+
+      for (let childId of childrenList) {
+        updateWidgetsPosition.current = {
+          ...updateWidgetsPosition.current,
+          [childId]: {
+            ...updateWidgetsPosition.current[childId],
+            parentColumnSpace: resultParentColumnSpace
+          }
+        }
+      }
+    }
 
     dispatch(stopReflow())
     /** 更新受到影响的widget位置*/
     dispatch(updateWidgets({ widgetsRowCol: updateWidgetsPosition.current }))
-  }, [widgetId, getUpdateWidgets])
+  }, [widgetId, getUpdateWidgets, canvasWidgets, parentColumnSpace])
 
   /** 拖拽时widget宽度*/
   const widgetWidth = useMemo(() => {
     if (reflowedPosition?.width) {
       return reflowedPosition.width - 2 * WIDGET_PADDING
     }
-    if (curFocusedWidgetId === widgetId) {
+    if (curFocusedWidgetId === widgetId && isResizing) {
       return newDimensions.width
     }
     return componentWidth
-  }, [reflowedPosition, newDimensions])
+  }, [reflowedPosition, newDimensions, componentWidth, curFocusedWidgetId, widgetId])
 
   /** 拖拽时widget高度*/
   const widgetHeight = useMemo(() => {
     if (reflowedPosition?.height) {
       return reflowedPosition.height - 2 * WIDGET_PADDING
     }
-    if (curFocusedWidgetId === widgetId) {
+    if (curFocusedWidgetId === widgetId && isResizing) {
       return newDimensions.height
     }
     return componentHeight
-  }, [reflowedPosition, newDimensions])
+  }, [reflowedPosition, newDimensions, componentHeight, curFocusedWidgetId, widgetId])
 
 
   return {

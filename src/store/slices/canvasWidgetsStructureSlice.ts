@@ -36,43 +36,49 @@ const initialState: { dsl: any } = {
     children: [
       {
         parentId: MAIN_CONTAINER_WIDGET_ID,
-        // bottomRow: 10,
-        // topRow: 4,
         type: "BUTTON_WIDGET",
         widgetId: "one"
       },
       {
         parentId: MAIN_CONTAINER_WIDGET_ID,
-        // bottomRow: 10,
-        // topRow: 4,
         type: "BUTTON_WIDGET",
         widgetId: "two"
       },
       {
         parentId: MAIN_CONTAINER_WIDGET_ID,
-        // bottomRow: 10,
-        // topRow: 4,
         type: "BUTTON_WIDGET",
         widgetId: "three"
       },
       {
         parentId: MAIN_CONTAINER_WIDGET_ID,
-        // bottomRow: 10,
-        // topRow: 4,
         type: "BUTTON_WIDGET",
         widgetId: "four"
       },
       {
         parentId: MAIN_CONTAINER_WIDGET_ID,
-        // bottomRow: 10,
-        // topRow: 4,
         type: "BUTTON_WIDGET",
         widgetId: "five"
       },
+      //二级画布
       {
         parentId: MAIN_CONTAINER_WIDGET_ID,
-        // bottomRow: 10,
-        // topRow: 4,
+        type: "CONTAINER_WIDGET",
+        widgetId: 'CONTAINER_ONE',
+        children: [
+          {
+            parentId: 'CONTAINER_ONE',
+            type: "BUTTON_WIDGET",
+            widgetId: "CONTAINER_BUTTON_ONE"
+          },
+          {
+            parentId: 'CONTAINER_ONE',
+            type: "BUTTON_WIDGET",
+            widgetId: "CONTAINER_BUTTON_TWO"
+          },
+        ]
+      },
+      {
+        parentId: MAIN_CONTAINER_WIDGET_ID,
         type: "BUTTON_WIDGET",
         widgetId: "six"
       },

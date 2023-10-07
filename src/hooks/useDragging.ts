@@ -46,7 +46,8 @@ export const useDragging = (
   /** reflow的数据*/
   const reflowData = useRef<ReflowData>({})
   /** 位置关系图*/
-  const widgetsSpaceGraph = useAppSelector(widgetsSpaceGraphSelector);
+  const widgetsSpaceGraph = useAppSelector(widgetsSpaceGraphSelector)[canvasId];
+  
   const widgetsSpaceGraphCopy = useRef<any>();
   widgetsSpaceGraphCopy.current = widgetsSpaceGraph
   /** widget距离关系信息*/

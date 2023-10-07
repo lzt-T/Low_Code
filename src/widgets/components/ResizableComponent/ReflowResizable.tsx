@@ -21,19 +21,24 @@ interface ReflowResizableProps {
 }
 export default function ReflowResizable(props: ReflowResizableProps) {
   const { enableResize, children, topRow, bottomRow, leftColumn,
-    rightColumn, parentColumnSpace, parentRowSpace, widgetId,parentId } = props
+    rightColumn, parentColumnSpace, parentRowSpace, widgetId, parentId } = props
   const resizableRef = useRef<any>(null)
   const scrollParent: Element | null = getNearestParentCanvas(resizableRef.current)
 
   /** 原始widget大小*/
   const dimensions: any = useMemo(() => {
     let width = (rightColumn - leftColumn) * parentColumnSpace - 2 * WIDGET_PADDING;
+    if (width <= 0) {
+      width = 0;
+    }
     let height = (bottomRow - topRow) * parentRowSpace - 2 * WIDGET_PADDING;
+    if (height <= 0) {
+      height = 0;
+    }
     return {
       width,
       height
     }
-
   }, [topRow, bottomRow, leftColumn, rightColumn, parentColumnSpace, parentRowSpace])
 
   const {
@@ -73,13 +78,6 @@ export default function ReflowResizable(props: ReflowResizableProps) {
     // 如果为真，则停止动画(直接跳转到结束状态)
     immediate: !!widgetDimension.reset,
   })
-
-
-  useEffect(() => {
-    // console.log(resizableRef.current,'asdasdas');
-    
-  },[])
-
 
   return (
     <animated.div className='resize' style={{ ...styles, position: 'relative' }} ref={resizableRef}>

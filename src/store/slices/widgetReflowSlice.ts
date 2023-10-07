@@ -34,17 +34,16 @@ export interface WidgetReflowState {
       // verticalEmptySpaces?: number;
     }
   },
+  //组件位置关系图，分区域
   widgetsSpaceGraph: {
     [propName: string]: any
   },
-  widgetsSpaceGraphAccording:any[]
 }
 
 const initialState: WidgetReflowState = {
   isReflowing: false,
   reflowingWidgets: {},
   widgetsSpaceGraph:{},
-  widgetsSpaceGraphAccording :[],
 }
 
 const widgetReflowSlice = createSlice({
@@ -64,12 +63,10 @@ const widgetReflowSlice = createSlice({
     setReflowingWidgets(state, action) {
       state.reflowingWidgets = { ...action.payload }
     },
+    /** 设置位置依赖关系*/
     setWidgetsSpaceGraph(state, action) { 
       state.widgetsSpaceGraph = { ...action.payload };
     },
-    setWidgetsSpaceGraphAccording(state, action) { 
-      state.widgetsSpaceGraphAccording = action.payload;
-    }
   }
 })
 
@@ -78,7 +75,6 @@ export const {
   reflowMove,
   setReflowingWidgets,
   setWidgetsSpaceGraph,
-  setWidgetsSpaceGraphAccording
 } = widgetReflowSlice.actions
 
 export const isWidgetReflowingSelector = (state: RootState) => state.widgetReflow.isReflowing
@@ -88,9 +84,6 @@ export default widgetReflowSlice.reducer
 
 export const getReflowSelector = (state: RootState): WidgetReflowState => {
   return state.widgetReflow
-}
-export const getWidgetsSpaceGraphAccordingSelector = (state: RootState): any => {
-  return state.widgetReflow.widgetsSpaceGraphAccording
 }
 
 export const getReflowByIdSelector = (widgetId: string) => {

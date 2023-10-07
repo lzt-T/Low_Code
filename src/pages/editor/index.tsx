@@ -7,11 +7,12 @@ import WidgetFactory from '@/widgets/WidgetFactory';
 import { getWidgetChildrenDetailSelector, getWidgetsSelector } from '@/store/slices/canvasWidgets';
 import { buildGraph } from '@/ngReflow/ngReflow';
 import { MAIN_CONTAINER_WIDGET_ID } from '@/constant/canvas';
-import { setWidgetsSpaceGraph, setWidgetsSpaceGraphAccording } from '@/store/slices/widgetReflowSlice';
+import { setWidgetsSpaceGraph } from '@/store/slices/widgetReflowSlice';
 
 export default function Editor() {
   const widgetsStructure = useAppSelector(getCanvasWidgetDsl);
   const canvasWidth = useAppSelector(getCanvasWidth)
+  const canvasWidgets = useAppSelector(getWidgetsSelector);
 
   /** 组件是否注册完成*/
   const [isLoad, setIsLoad] = useState(false);
@@ -23,24 +24,42 @@ export default function Editor() {
     }
   }, [WidgetFactory.widgetBuilderMap.size, isLoad])
 
-  const canvasWidgetsChildrenDetail = useAppSelector(getWidgetChildrenDetailSelector(MAIN_CONTAINER_WIDGET_ID));
-  /** */
+
   useEffect(() => {
-    let widgetList = []
-    for (let key in canvasWidgetsChildrenDetail) {
-      let item = canvasWidgetsChildrenDetail[key];
-      widgetList.push({
-        ...item,
-        id: item.widgetId
-      })
+    let resultData: {
+      [propName: string]: any[]
+    } = {};
+    let data: {
+      [propName: string]: {}
+    } = {};
+    for (let key in canvasWidgets) {
+      let item = canvasWidgets[key];
+      if (item.type === 'CONTAINER_WIDGET' || item.type === 'CANVAS_WIDGET') {
+        let childrenDetail: any[] = [];
+        let childrenIdList = canvasWidgets[item.widgetId].children;
+        for (let i = 0; i < childrenIdList.length; i++) {
+          childrenDetail.push(canvasWidgets[childrenIdList[i]])
+        }
+        resultData[item.widgetId] = childrenDetail;
+      }
     }
-  
-    /** 建立状态图*/
-    let spaceGraph = buildGraph(widgetList as any);
-    dispatch(setWidgetsSpaceGraphAccording({...spaceGraph}));
-    dispatch(setWidgetsSpaceGraph(spaceGraph));
-    
-  }, [canvasWidgetsChildrenDetail])
+
+    for (let key in resultData) {
+      let widgetList = []
+      for (let keyOne in resultData[key]) {
+        let item = resultData[key][keyOne];
+        widgetList.push({
+          ...item,
+          id: item.widgetId
+        })
+      }
+
+      let spaceGraph = buildGraph(widgetList as any);
+      data[key] = spaceGraph;
+    }
+
+    dispatch(setWidgetsSpaceGraph(data));
+  }, [canvasWidgets])
 
 
   return (
@@ -48,9 +67,9 @@ export default function Editor() {
       <div
         className='canvas'
         style={{
-        height: "100%",
-        position: 'relative',
-      }}>
+          height: "100%",
+          position: 'relative',
+        }}>
         {isLoad && <Canvas
           canvasWidth={canvasWidth}
           widgetsStructure={widgetsStructure}

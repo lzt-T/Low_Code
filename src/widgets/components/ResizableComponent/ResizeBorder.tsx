@@ -104,7 +104,7 @@ export default function ResizeBorder(props: ResizeBorderProps) {
       direction,
       breakY: y,
     }
-  }, [scrollParent])
+  }, [scrollParent,onResizeDrag])
 
 
   /** 设置边框dom*/

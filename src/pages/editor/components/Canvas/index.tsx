@@ -17,8 +17,8 @@ export default function Canvas(props: CanvasProps) {
     <>
       <div style={
         {
-          // backgroundColor: '#F8FAFC',
-          backgroundColor: 'yellow',
+          backgroundColor: '#F8FAFC',
+          // backgroundColor: 'yellow',
           width: `${canvasWidth}px`,
           height: '100%',
         }

@@ -80,7 +80,7 @@ class ContainerWidget extends BaseWidget<ContainerWidgetProps, ContainerWidgetSt
           props.type === 'CANVAS_WIDGET' &&
           //  props.renderMode === RenderModes.CANVAS &&
           (
-
+            //canvas上画的框和拖拽操作
             <CanvasDraggingArena
               {...this.getSnapSpaces()}
               // canExtend={props.canExtend}

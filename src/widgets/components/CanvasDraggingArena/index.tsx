@@ -16,7 +16,7 @@ export interface CanvasDraggingArenaProps {
 
 export default function CanvasDraggingArena(props: CanvasDraggingArenaProps) {
 
-  const { snapColumnSpace, snapRowSpace, widgetId } = props
+  const { snapColumnSpace, snapRowSpace, widgetId } = props  
 
 
   /** 是否调整大小*/
@@ -55,6 +55,7 @@ export default function CanvasDraggingArena(props: CanvasDraggingArenaProps) {
     snapRowSpace,
   })
 
+
   /** 是否显示画布*/
   const showCanvas = useMemo(() => {
     return !!isDragging
@@ -82,7 +83,7 @@ export default function CanvasDraggingArena(props: CanvasDraggingArenaProps) {
     stickyCanvasRef.current.style.top = 0 + "px"
     stickyCanvasRef.current.style.left = 0 + "px"
 
-    let boundingClientRect = slidingArenaRef.current.getBoundingClientRect()
+    let boundingClientRect = slidingArenaRef.current.getBoundingClientRect()    
     setCanvasHeight(boundingClientRect.height)
     setCanvasWidth(boundingClientRect.width)
   }
@@ -119,7 +120,7 @@ export default function CanvasDraggingArena(props: CanvasDraggingArenaProps) {
                 width={canvasWidth}
               />
               {/* 画布实际大小 */}
-              <CanvasSliderSty className='CanvasSliderSty' ref={slidingArenaRef} />
+              <CanvasSliderSty ref={slidingArenaRef} />
             </div>
           )
           : null
