@@ -6,7 +6,7 @@ import { endDragging, isDraggingSelector } from "@/store/slices/dragResize";
 import { addNewWidgetChunk, getWidgetChildrenDetailSelector, getWidgetChildrenSelector, getWidgetsSelector, updateWidgetAccordingWidgetId, updateWidgets } from "@/store/slices/canvasWidgets";
 import { ReflowData, WidgetReSizeInfo } from "./useResize";
 import _ from "lodash";
-import { MIN_HEIGHT_ROW, MIN_WIDTH_COLUMN } from "@/constant/widget";
+import { COLUM_NUM, MIN_HEIGHT_ROW, MIN_WIDTH_COLUMN } from "@/constant/widget";
 import { WidgetRowCols } from "@/interface/widget";
 import { MAIN_CONTAINER_WIDGET_ID } from "@/constant/canvas";
 
@@ -47,7 +47,7 @@ export const useDragging = (
   const reflowData = useRef<ReflowData>({})
   /** 位置关系图*/
   const widgetsSpaceGraph = useAppSelector(widgetsSpaceGraphSelector)[canvasId];
-  
+
   const widgetsSpaceGraphCopy = useRef<any>();
   widgetsSpaceGraphCopy.current = widgetsSpaceGraph
   /** widget距离关系信息*/
@@ -661,6 +661,23 @@ export const useDragging = (
       bottomRow = height ? (item.topRow + reflowData[key].Y / snapRowSpace) + height / snapRowSpace : item.bottomRow + reflowData[key].Y / snapRowSpace;
       leftColumn = item.leftColumn + reflowData[key].X / snapColumnSpace;
       rightColumn = width ? (item.leftColumn + reflowData[key].X / snapColumnSpace) + width / snapColumnSpace : item.rightColumn + reflowData[key].X / snapColumnSpace;
+
+      //更新画布儿子的ColumnSpace
+      if (item.type === 'CONTAINER_WIDGET') {
+        let childrenList = canvasWidgetsCopy.current[item.widgetId].children
+        let resultParentColumnSpace = canvasWidgetsCopy.current[item.widgetId].parentColumnSpace
+        resultParentColumnSpace = (rightColumn - leftColumn - 1) * resultParentColumnSpace / COLUM_NUM
+
+        for (let childId of childrenList) {
+          resultData = {
+            ...resultData,
+            [childId]: {
+              ...resultData[childId],
+              parentColumnSpace: resultParentColumnSpace
+            }
+          }
+        }
+      }
 
       resultData[key] = {
         topRow,
