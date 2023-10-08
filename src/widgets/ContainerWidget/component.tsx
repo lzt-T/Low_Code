@@ -17,14 +17,22 @@ const ContainerComponent = (props: any) => {
   return widgetId === MAIN_CONTAINER_WIDGET_ID ? (
     <ContainerComponentWrapper {...props} />
   ) : (
-    <div style={{
-      boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 3px 0px, rgba(0, 0, 0, 0.06) 0px 1px 2px 0px",
-      height: '100%',
-      backgroundColor: '#fff',
-      overflow: 'hidden',
-      position: 'relative',
-    }}>
-      {props.children}
+    <div
+      className='scrollElement'
+      style={{
+        boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 3px 0px, rgba(0, 0, 0, 0.06) 0px 1px 2px 0px",
+        height: '100%',
+        // backgroundColor: '#fff',
+        overflowX: 'hidden',
+        position: 'relative',
+      }}>
+      <div
+        style={{
+          height: '500px',
+          backgroundColor: '#fff',
+        }}>
+        {props.children}
+      </div>
     </div>
   )
 }

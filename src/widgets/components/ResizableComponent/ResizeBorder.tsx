@@ -104,7 +104,7 @@ export default function ResizeBorder(props: ResizeBorderProps) {
       direction,
       breakY: y,
     }
-  }, [scrollParent,onResizeDrag])
+  }, [scrollParent, onResizeDrag])
 
 
   /** 设置边框dom*/
@@ -183,6 +183,7 @@ export default function ResizeBorder(props: ResizeBorderProps) {
       if (!isResizing) {
         return
       }
+
       /** 滚动差值*/
       let scrollDistance = Math.round((scrollParent.scrollTop - lastMouseMove.current.scrollY) / parentRowSpace) * parentRowSpace;
       onResizeDrag({
@@ -201,7 +202,7 @@ export default function ResizeBorder(props: ResizeBorderProps) {
     return () => {
       scrollParent.removeEventListener('scroll', onScroll)
     }
-  }, [isResizing])
+  }, [isResizing, scrollParent, onResizeDrag])
 
   return (
     <>
