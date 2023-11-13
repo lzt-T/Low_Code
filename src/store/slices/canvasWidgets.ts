@@ -311,7 +311,8 @@ export const getWidgetChildrenDetailSelector = (parentWidgetId: string) => {
   )
 }
 
-export const addNewWidgetChunk = (position: any, parentUnit: any) => {
+/** 为画布添加widget*/
+export const addNewWidgetChunk = (position: any, parentUnit: any,) => {
   return (dispatch: any, getState: any) => {
     const state = getState()
     let newWidgetInfo = state.ui.dragResize.dragDetails.newWidget;

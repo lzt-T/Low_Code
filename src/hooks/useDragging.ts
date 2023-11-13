@@ -1,14 +1,15 @@
-import { setReflowingWidgets, stopReflow, widgetsSpaceGraphSelector } from "@/store/slices/widgetReflowSlice";
+import { setReflowingWidgets, setReflowingWidgetsOne, stopReflow, widgetsSpaceGraphSelector } from "@/store/slices/widgetReflowSlice";
 import { useAppDispatch, useAppSelector } from "./redux";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ReSizeDirection, ReflowDirection } from "@/enum/move";
-import { endDragging, isDraggingSelector } from "@/store/slices/dragResize";
-import { addNewWidgetChunk, getWidgetChildrenDetailSelector, getWidgetChildrenSelector, getWidgetsSelector, updateWidgetAccordingWidgetId, updateWidgets } from "@/store/slices/canvasWidgets";
-import { ReflowData, WidgetReSizeInfo } from "./useResize";
+import { draggedOnSelector, endDragging, isDraggingSelector, setDraggedOn } from "@/store/slices/dragResize";
+import { addNewWidgetChunk, getWidgetChildrenDetailSelector, getWidgetsSelector, updateWidgets } from "@/store/slices/canvasWidgets";
+import { ReflowData } from "./useResize";
 import _ from "lodash";
 import { COLUM_NUM, MIN_HEIGHT_ROW, MIN_WIDTH_COLUMN } from "@/constant/widget";
 import { WidgetRowCols } from "@/interface/widget";
-import { MAIN_CONTAINER_WIDGET_ID } from "@/constant/canvas";
+import { CONTAINER_WIDGET_DRAG_ENTER_THRESHOLD, MAIN_CONTAINER_WIDGET_ID } from "@/constant/canvas";
+import { Space } from "@/interface/space";
 
 
 type WidgetsMaxInfo = {
@@ -28,6 +29,11 @@ export const useDragging = (
   /** 画布高单位大小*/
   snapRowSpace: number,
 ) => {
+
+  const draggedOnCanvasId = useAppSelector(draggedOnSelector)
+  const _draggedOnCanvasId = useRef('');
+  _draggedOnCanvasId.current = draggedOnCanvasId
+
   const canvasWidgets = useAppSelector(getWidgetsSelector);
   const canvasWidgetsCopy = useRef<any>({});
   canvasWidgetsCopy.current = canvasWidgets
@@ -66,8 +72,11 @@ export const useDragging = (
   /** 是否可以放置*/
   const isCanPlaced = useRef<boolean>(true)
 
+  /** 是否移出容器*/
+  const isMoveOutContainer = useRef<boolean>(false)
+
   /** 记录在大小变化过程中，widget的信息，如位置、移动方向、碰撞时鼠标临界值*/
-  const widgetsResizeInfo = useRef<Map<string, WidgetReSizeInfo>>(new Map());
+  const widgetsResizeInfo = useRef<Map<string, any>>(new Map());
 
   /** 动画*/
   let draggingAnimation = useRef<any>();
@@ -88,9 +97,15 @@ export const useDragging = (
       topRow: 0,
       bottomRow: canvasId === MAIN_CONTAINER_WIDGET_ID ? parent?.bottomRow / snapRowSpace : parent?.bottomRow - parent?.topRow,
       leftColumn: 0,
-      rightColumn: canvasId === MAIN_CONTAINER_WIDGET_ID ? parent.snapColumns : parent?.rightColumn - parent?.leftColumn,
+      // rightColumn: canvasId === MAIN_CONTAINER_WIDGET_ID ? parent.snapColumns : parent?.rightColumn - parent?.leftColumn,
+      rightColumn: 64,
     }
   }, [])
+
+  /** 是否是当前画布*/
+  const isCurrentCanvas = useMemo(() => {
+    return canvasId === draggedOnCanvasId
+  }, [draggedOnCanvasId, canvasId])
 
   /** 拖拽左上方顶点位置*/
   const mousePosition = useRef<{
@@ -137,7 +152,6 @@ export const useDragging = (
   }, [])
 
   const onDragStart = useCallback(() => {
-    lastMousePosition.current = { x: 0, y: 0 }
     widgetsResizeInfo.current.clear()
   }, [])
 
@@ -617,8 +631,7 @@ export const useDragging = (
       }
     }
 
-
-    sortCanvasWidgets.forEach((item: any,) => {
+    sortCanvasWidgets.forEach((item: any) => {
       if (
         scopeCondition[direction](item) && collisionBoundaryCondition[direction](item)
       ) {
@@ -629,6 +642,10 @@ export const useDragging = (
           topRow: item.topRow,
           bottomRow: item.bottomRow,
           moveCriticalValue: item[oppositeDirection],
+          /** 是否加速进入*/
+          isSpeed: Math.abs(startBoundary - endBoundary) >= CONTAINER_WIDGET_DRAG_ENTER_THRESHOLD,
+          type: item.type,
+          widgetId: item.widgetId
         })
       }
     })
@@ -693,10 +710,10 @@ export const useDragging = (
 
   /**
   * @description 检查是否可以放置,不需要遍历所有的widget，而是直接判断边界，快死了
-  * @param 
+  * @param draggingPosition 位置信息 Space
   * @returns {boolean} 返回是否可以放置
   */
-  const checkIsCanPlaced = useCallback((draggingPosition: any) => {
+  const checkIsCanPlaced = useCallback((draggingPosition: Space) => {
     let isTrue = true;
     for (let key in draggingPosition) {
       if (key === 'topRow'
@@ -732,6 +749,33 @@ export const useDragging = (
     }
 
     isCanPlaced.current = isTrue
+    return isTrue
+  }, [])
+
+
+  /**
+  * @description 检查是否移除容器
+  * @param draggingPosition 位置信息 Space
+  * @returns
+  */
+  const checkIsMoveOutContainer = useCallback((draggingPosition: Space) => {
+    let isTrue = false;
+    for (let key in draggingPosition) {
+      if (key === 'topRow' && draggingPosition[key] > parentBlackInfo.bottomRow) {
+        isTrue = true
+      }
+      if (key === 'bottomRow' && draggingPosition[key] < parentBlackInfo.topRow) {
+        isTrue = true
+      }
+      if (key === 'leftColumn' && draggingPosition[key] > parentBlackInfo.rightColumn
+      ) {
+        isTrue = true
+      }
+      if (key === 'rightColumn' && draggingPosition[key] < parentBlackInfo.leftColumn) {
+        isTrue = true
+      }
+    }
+    isMoveOutContainer.current = isTrue
     return isTrue
   }, [])
 
@@ -833,6 +877,12 @@ export const useDragging = (
         //直接接触移动，而不是间接接触移动
         && !reflowData.current[key]
       ) {
+
+        /** 加速进入画布，设置画布Id*/
+        if (value.isSpeed && value.type === 'CONTAINER_WIDGET') {
+          dispatch(setDraggedOn(value.widgetId))
+        }
+
         contactArrId.push(key);
         sign.fill(1, value[startBoundary] + 1, value[endBoundary] - 1);
         unitLength = moveUnitLength(value);
@@ -933,12 +983,17 @@ export const useDragging = (
       setDirectionWidgetsReflowData(draggingPosition, ReSizeDirection.LEFT)
       /** 检验是否可以放置*/
       checkIsCanPlaced(draggingPosition)
-    }
 
+      /** 检查是否超出容器*/
+      checkIsMoveOutContainer(draggingPosition)
+    }
 
     lastMousePosition.current = mousePosition.current
     draggingAnimation.current = requestAnimationFrame(onDragging)
-    dispatch(setReflowingWidgets({ ...reflowData.current }))
+
+    let widgetIdList = canvasWidgetsChildrenDetailCopy.current.map((item: any) => item.widgetId);
+
+    dispatch(setReflowingWidgetsOne({ idList: widgetIdList, reflowData: reflowData.current }))
   }, [])
 
   const onDragEnd = useCallback(() => {
@@ -949,16 +1004,17 @@ export const useDragging = (
 
       dispatch(addNewWidgetChunk(newWidgetPosition.current, {
         rowSpace: snapRowSpace,
-        columnSpace: snapColumnSpace
+        columnSpace: snapColumnSpace,
       }))
 
     } else {
       console.warn('请放置正确位置');
     }
     dispatch(stopReflow())
+    dispatch(endDragging())
   }, [])
 
-  const setLastMousePosition = useCallback((x: number, y: number) => {
+  const setMousePosition = useCallback((x: number, y: number) => {
     mousePosition.current = { x, y }
   }, [])
 
@@ -973,9 +1029,21 @@ export const useDragging = (
     }
   }, [])
 
-
   useEffect(() => {
+    /** 画布目标切换，停止*/
+    if (!isCurrentCanvas) {
+      if (isHasDragging.current) {
+        cancelAnimationFrame(draggingAnimation.current);
+        isHasDragging.current = false
+      }
+      return
+    }
+
+    /** 是否拖拽的状态*/
     if (isDragging) {
+      if (!isCurrentCanvas) {
+        return
+      }
       isHasDragging.current = true
       onDragStart()
       onDragging()
@@ -986,10 +1054,15 @@ export const useDragging = (
         isHasDragging.current = false
       }
     }
-  }, [isDragging])
+
+    return () => {
+      draggingAnimation.current && cancelAnimationFrame(draggingAnimation.current);
+    }
+  }, [isDragging, isCurrentCanvas])
 
   return {
+    isMoveOutContainer,
     isCanPlaced,
-    setLastMousePosition
+    setMousePosition
   }
 }

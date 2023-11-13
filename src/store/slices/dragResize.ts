@@ -118,7 +118,7 @@ export const dragResizeSlice = createSlice({
     * @param 
     * @returns
     */
-    setIsDragging: (state,action) => {
+    setIsDragging: (state, action) => {
       state.isDragging = action.payload
     },
 
@@ -149,6 +149,12 @@ export const dragResizeSlice = createSlice({
     ) => {
       state.isResizing = action.payload.isResizing
     },
+    /** 设置画布*/
+    setDraggedOn: (state, action: {
+      payload: string
+    }) => {
+      state.dragDetails.draggedOn = action.payload      
+    }
   },
 })
 
@@ -160,7 +166,8 @@ export const {
   setNewWidgetDragging,
   setDraggingCanvas,
   endDragging,
-  setIsDragging
+  setIsDragging,
+  setDraggedOn
 } = dragResizeSlice.actions
 
 export const isDraggingSelector = (state: RootState) => {
@@ -175,5 +182,9 @@ export const dragDetailsSelector = (state: RootState) => {
 export const curFocusedWidgetIdSelector = (state: RootState) => {
   return state.ui.dragResize.curFocusedWidgetId
 }
+export const draggedOnSelector = (state: RootState) => {
+  return state.ui.dragResize.dragDetails.draggedOn
+}
+
 
 export default dragResizeSlice.reducer

@@ -15,11 +15,11 @@ export default function Index() {
       <div
         className='scrollElement'
         style={{
-        flex: '1',
-        display: 'flex',
-        justifyContent: "center",
-        overflowY: "auto",
-      }}>
+          flex: '1',
+          display: 'flex',
+          justifyContent: "center",
+          overflowY: "auto",
+        }}>
         <Editor />
       </div>
       <div style={{

@@ -12,11 +12,13 @@ export interface CanvasDraggingArenaProps {
   snapRowSpace: number;
   /** 画布widgetId*/
   widgetId: string;
+  /**  父亲id*/
+  parentId: string | undefined;
 }
 
 export default function CanvasDraggingArena(props: CanvasDraggingArenaProps) {
 
-  const { snapColumnSpace, snapRowSpace, widgetId } = props  
+  const { snapColumnSpace, snapRowSpace, widgetId, parentId } = props
 
 
   /** 是否调整大小*/
@@ -53,6 +55,7 @@ export default function CanvasDraggingArena(props: CanvasDraggingArenaProps) {
     widgetId,
     snapColumnSpace,
     snapRowSpace,
+    parentId
   })
 
 
@@ -83,7 +86,10 @@ export default function CanvasDraggingArena(props: CanvasDraggingArenaProps) {
     stickyCanvasRef.current.style.top = 0 + "px"
     stickyCanvasRef.current.style.left = 0 + "px"
 
-    let boundingClientRect = slidingArenaRef.current.getBoundingClientRect()    
+    let boundingClientRect = slidingArenaRef.current.getBoundingClientRect()
+
+    // console.log(boundingClientRect.height,'asdasd');
+
     setCanvasHeight(boundingClientRect.height)
     setCanvasWidth(boundingClientRect.width)
   }
@@ -109,19 +115,18 @@ export default function CanvasDraggingArena(props: CanvasDraggingArenaProps) {
       {
         showCanvas ?
           (
-            <div>
+            <>
               {/* 画布实际大小 */}
               <canvas ref={stickyCanvasRef}
                 style={{
                   position: 'absolute',
-                  zIndex: 1,
                 }}
                 height={canvasHeight}
                 width={canvasWidth}
               />
               {/* 画布实际大小 */}
               <CanvasSliderSty ref={slidingArenaRef} />
-            </div>
+            </>
           )
           : null
       }

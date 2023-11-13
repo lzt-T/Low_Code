@@ -1,30 +1,40 @@
 import { RefObject, useCallback, useEffect, useMemo, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "./redux";
-import { endDragging, isDraggingSelector, isResizingSelector, setIsDragging } from "@/store/slices/dragResize";
+import { dragDetailsSelector, endDragging, isDraggingSelector, isResizingSelector, setDraggedOn, setIsDragging } from "@/store/slices/dragResize";
 import { getAbsolutePixels, getNearestParentCanvas } from "@/utils/helpers";
 import { useDragging } from "./useDragging";
+import { MAIN_CONTAINER_WIDGET_ID } from "@/constant/canvas";
 
 export default function useCanvasDragging(
   slidingArenaRef: RefObject<HTMLDivElement>,
   stickyCanvasRef: RefObject<HTMLCanvasElement>,
   otherPropsObj: {
+    /** 画布id*/
     widgetId: string,
     /** 画布单位宽度*/
     snapColumnSpace: number,
     /** 画布单位高度*/
     snapRowSpace: number,
+    /** 父亲id*/
+    parentId: string | undefined
   }
 ) {
 
-  const { snapColumnSpace, snapRowSpace, widgetId } = otherPropsObj
+  const { snapColumnSpace, snapRowSpace, widgetId, parentId } = otherPropsObj
   //拖拽中
-  let { setLastMousePosition, isCanPlaced } = useDragging(widgetId, snapColumnSpace, snapRowSpace)
+  let { setMousePosition, isCanPlaced, isMoveOutContainer } = useDragging(widgetId, snapColumnSpace, snapRowSpace)
   const dispatch = useAppDispatch()
   const isResizing = useAppSelector(isResizingSelector)
   const isDragging = useAppSelector(isDraggingSelector)
+  const dragDetails = useAppSelector(dragDetailsSelector)
   const newWidgetDraggingInfo = useAppSelector((state) => state.ui.dragResize.dragDetails.newWidget)
   /** 可滚动的父元素*/
   const scrollParent: Element | null = getNearestParentCanvas(slidingArenaRef.current)
+
+  /** 是否是当前画布*/
+  const isCurrentCanvas = useMemo(() => {
+    return widgetId === dragDetails.draggedOn
+  }, [dragDetails.draggedOn, widgetId])
 
   /** 最后一次鼠标移动事件*/
   const lastMouseMoveEvent = useRef<any>({
@@ -75,26 +85,36 @@ export default function useCanvasDragging(
       }
       const ctx: any = stickyCanvasRef.current?.getContext('2d')
       ctx.clearRect(0, 0, stickyCanvasRef.current.width, stickyCanvasRef.current.height)
-      //填充
-      ctx.fillStyle = isCanPlaced.current ? "rgb(104, 113, 239, 0.6)" : "rgb(255, 0, 0, 0.6)";
-      ctx.fillRect(
-        originX,
-        originY,
-        newWidgetDraggingInfo.columns * snapColumnSpace,
-        newWidgetDraggingInfo.rows * snapRowSpace
-      );
-
-      //轮廓
-      ctx.setLineDash([3])
-      ctx.strokeStyle = 'rgb(104, 113, 239)';
       let originActualInfo = getActualLocation(originX, originY, snapColumnSpace, snapRowSpace)
-      ctx.strokeRect(
-        originActualInfo.X,
-        originActualInfo.Y,
-        newWidgetDraggingInfo.columns * snapColumnSpace,
-        newWidgetDraggingInfo.rows * snapRowSpace
-      )
-      setLastMousePosition(originActualInfo.X, originActualInfo.Y)
+
+      /** 是当前画布才绘画轮廓*/
+      if (isCurrentCanvas) {
+        //填充
+        ctx.fillStyle = isCanPlaced.current ? "rgb(104, 113, 239, 0.6)" : "rgb(255, 0, 0, 0.6)";
+        ctx.fillRect(
+          originX,
+          originY,
+          newWidgetDraggingInfo.columns * snapColumnSpace,
+          newWidgetDraggingInfo.rows * snapRowSpace
+        );
+
+        //轮廓
+        ctx.setLineDash([3])
+        ctx.strokeStyle = 'rgb(104, 113, 239)';
+        ctx.strokeRect(
+          originActualInfo.X,
+          originActualInfo.Y,
+          newWidgetDraggingInfo.columns * snapColumnSpace,
+          newWidgetDraggingInfo.rows * snapRowSpace
+        )
+      }
+
+      /** 在当前画布并且移出时，设置画布为父亲画布*/
+      if (isCurrentCanvas && isMoveOutContainer.current && parentId) {
+        dispatch(setDraggedOn(parentId))
+      }
+
+      setMousePosition(originActualInfo.X, originActualInfo.Y)
       return {
         X: originActualInfo.X,
         Y: originActualInfo.Y,
@@ -103,14 +123,23 @@ export default function useCanvasDragging(
 
     /** 鼠标拖拽移动*/
     const onWindowMouseMove = (e: MouseEvent) => {
-
       if (!stickyCanvasRef.current || !newWidgetDraggingInfo.columns || !newWidgetDraggingInfo.rows) {
         return
       }
       let boundingClientRect = (stickyCanvasRef.current as any).getBoundingClientRect();
 
-      let originActualInfo = drawMovingContours(e.pageX - boundingClientRect.left - newWidgetDraggingInfo.columns * snapColumnSpace / 2,
-        e.pageY + Math.abs(boundingClientRect.top) - newWidgetDraggingInfo.rows * snapRowSpace / 2,
+      /** 容器中的鼠标Y轴位置(包含滚动条的距离)*/
+      let containerMouseY;
+
+      if (widgetId != MAIN_CONTAINER_WIDGET_ID) {
+        containerMouseY = e.pageY - boundingClientRect.y
+      } else {
+        containerMouseY = e.pageY + Math.abs(boundingClientRect.top)
+      }
+
+      let originActualInfo = drawMovingContours(
+        e.pageX - boundingClientRect.left - newWidgetDraggingInfo.columns * snapColumnSpace / 2,
+        containerMouseY - newWidgetDraggingInfo.rows * snapRowSpace / 2,
       )
       lastMouseMoveEvent.current = {
         offsetX: originActualInfo?.X,
@@ -156,10 +185,17 @@ export default function useCanvasDragging(
 
     return () => {
       slidingArenaRef.current?.removeEventListener('mousemove', onMouseMove)
+      scrollParent?.removeEventListener('scroll', onScroll)
+      slidingArenaRef.current?.removeEventListener('mouseenter', onMouseenter)
+      slidingArenaRef.current?.removeEventListener('mouseleave', onMouseleave)
       slidingArenaRef.current?.removeEventListener('mouseup', onMouseup)
+      window.removeEventListener('mouseup', onMouseup)
+      document.body.removeEventListener('mousemove', onWindowMouseMove)
     }
-  }, [isDragging, isResizing, newWidgetDraggingInfo, setLastMousePosition
-    , scrollParent, snapColumnSpace, snapRowSpace
-  ])
+  },
+    [isDragging, isResizing, newWidgetDraggingInfo, setMousePosition,
+      scrollParent, snapColumnSpace, snapRowSpace, isCurrentCanvas, parentId
+    ]
+  )
 
 }

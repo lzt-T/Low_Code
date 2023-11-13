@@ -33,6 +33,13 @@ export interface OccupiedSpace{
   rightColumn: number;
 }
 
+export interface Space{ 
+  topRow: number;
+  bottomRow: number;
+  leftColumn: number;
+  rightColumn: number;
+}
+
 
 export enum SpaceAttributes {
   top = "topRow",

@@ -1,7 +1,7 @@
 import { WIDGET_PADDING } from '@/constant/widget';
 import { useAppSelector } from '@/hooks/redux';
-import { isResizingSelector } from '@/store/slices/dragResize';
-import { getReflowByIdSelector } from '@/store/slices/widgetReflowSlice';
+import { dragDetailsSelector, isResizingSelector } from '@/store/slices/dragResize';
+import { getReflowByIdSelector, getReflowSelector } from '@/store/slices/widgetReflowSlice';
 import equal from "fast-deep-equal"
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 
@@ -19,17 +19,18 @@ interface PositionedContainer {
   parentRowSpace: number,
   parentColumnSpace: number,
   leftColumn: number,
+  widgetType: string,
   [propsName: string]: any
 }
 export default function PositionedContainer(props: PositionedContainer) {
   const { children, widgetId, topRow, parentRowSpace, leftColumn, parentColumnSpace,
-    componentHeight, componentWidth
+    componentHeight, componentWidth, parentId
   } = props;
 
   /** 在reflow中的样式*/
   const reflowedPosition = useAppSelector(getReflowByIdSelector(widgetId), equal)
+  const dragDetails = useAppSelector(dragDetailsSelector)
 
-  // const isResizing = useAppSelector(isResizingSelector)
   const top = useMemo(() => {
     return topRow * parentRowSpace
   }, [topRow, parentRowSpace, widgetId])
@@ -45,6 +46,11 @@ export default function PositionedContainer(props: PositionedContainer) {
     const reflowY = reflowedPosition?.Y || 0;
 
     if (reflowedPosition) {
+      /** 当dragDetails.draggedOn存在时,不是当前画布的儿子，不移动*/
+      if (!!dragDetails.draggedOn && dragDetails.draggedOn != parentId) {
+        return {}
+      }
+
       return {
         transform: `translate(${reflowX}px,${reflowY}px)`,
         transition: `transform 100ms linear`,
@@ -53,10 +59,10 @@ export default function PositionedContainer(props: PositionedContainer) {
     } else {
       return {}
     }
-  }, [reflowedPosition])
+  }, [reflowedPosition, dragDetails, parentId])
 
 
-  const containerStyle: React.CSSProperties = useMemo(() => {  
+  const containerStyle: React.CSSProperties = useMemo(() => {
 
     let style: React.CSSProperties = {
       position: 'absolute',

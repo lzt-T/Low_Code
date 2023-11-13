@@ -77,23 +77,23 @@ class ContainerWidget extends BaseWidget<ContainerWidgetProps, ContainerWidgetSt
     return (
       <ContainerComponent {...props}>
         {
-          props.type === 'CANVAS_WIDGET' &&
+          // props.type === 'CANVAS_WIDGET' &&
           //  props.renderMode === RenderModes.CANVAS &&
-          (
+          // (
             //canvas上画的框和拖拽操作
             <CanvasDraggingArena
               {...this.getSnapSpaces()}
               // canExtend={props.canExtend}
               // dropDisabled={!!props.dropDisabled}
               // noPad={this.props.noPad}
-              // parentId={props.parentId}
+              parentId={props.parentId}
               // snapRows={snapRows}
               widgetId={props.widgetId}
             />
-          )
+          // )
         }
         {/* 画布上的widget */}
-        <>{this.renderChildren()}</>
+        {this.renderChildren()}
       </ContainerComponent>
     )
   }

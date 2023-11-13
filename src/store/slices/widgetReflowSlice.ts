@@ -43,7 +43,7 @@ export interface WidgetReflowState {
 const initialState: WidgetReflowState = {
   isReflowing: false,
   reflowingWidgets: {},
-  widgetsSpaceGraph:{},
+  widgetsSpaceGraph: {},
 }
 
 const widgetReflowSlice = createSlice({
@@ -63,8 +63,26 @@ const widgetReflowSlice = createSlice({
     setReflowingWidgets(state, action) {
       state.reflowingWidgets = { ...action.payload }
     },
+
+    /** 拖拽时设置reflow*/
+    setReflowingWidgetsOne(state, action: {
+      payload: {
+        idList: string[],
+        reflowData: any,
+      }
+    }) {
+      let resultReflowData:any = {};
+      for (let key in state.reflowingWidgets) {
+        if (!action.payload.idList.includes(key)) {
+          resultReflowData[key] = state.reflowingWidgets[key]
+        }
+      }
+      state.reflowingWidgets = { ...resultReflowData, ...action.payload.reflowData }
+
+    },
+
     /** 设置位置依赖关系*/
-    setWidgetsSpaceGraph(state, action) { 
+    setWidgetsSpaceGraph(state, action) {
       state.widgetsSpaceGraph = { ...action.payload };
     },
   }
@@ -75,6 +93,7 @@ export const {
   reflowMove,
   setReflowingWidgets,
   setWidgetsSpaceGraph,
+  setReflowingWidgetsOne
 } = widgetReflowSlice.actions
 
 export const isWidgetReflowingSelector = (state: RootState) => state.widgetReflow.isReflowing

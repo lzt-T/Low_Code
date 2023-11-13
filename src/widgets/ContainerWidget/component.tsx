@@ -24,12 +24,15 @@ const ContainerComponent = (props: any) => {
         height: '100%',
         // backgroundColor: '#fff',
         overflowX: 'hidden',
+        overflowY: 'scroll',
         position: 'relative',
       }}>
       <div
         style={{
-          height: '500px',
+          position: 'relative',
+          height: '890px',
           backgroundColor: '#fff',
+
         }}>
         {props.children}
       </div>

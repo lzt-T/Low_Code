@@ -21,3 +21,6 @@ export const GridDefaults = {
 
 /** 画布默认padding 6*/
 export const CONTAINER_GRID_PADDING = GridDefaults.DEFAULT_GRID_ROW_HEIGHT * 0.6
+
+/** 判断是否加速进入容器阈值*/
+export const CONTAINER_WIDGET_DRAG_ENTER_THRESHOLD = 3.2

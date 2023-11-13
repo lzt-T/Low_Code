@@ -97,9 +97,28 @@ const canvasWidgetsStructure = createSlice({
       state.dsl = { ...denormalize(MAIN_CONTAINER_WIDGET_ID, action.payload.widgets) }
     },
 
-    /** 初步这个这样，后面再改变*/
-    addWidgetStructure: (state,action) => {
-      state.dsl.children.push(action.payload)
+    /** 添加widget到dsl里面*/
+    addWidgetStructure: (state, action: { payload: any }) => {
+      let { parentId } = action.payload;
+      //递归查找父级
+      const findParent:any = (dsl: any) => {
+        if (dsl.widgetId === parentId) {
+          return dsl
+        }
+        if (dsl.children) {
+          for (let i = 0; i < dsl.children.length; i++) {
+            let result = findParent(dsl.children[i])
+            if (result) {
+              return result
+            }
+          }
+        }
+      }
+      let parent = findParent(state.dsl)
+      if (!parent.children) { 
+        parent.children = []
+      } 
+      parent.children.push(action.payload)
     },
   },
 })
