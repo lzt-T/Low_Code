@@ -1,6 +1,7 @@
 import { MAIN_CONTAINER_WIDGET_ID } from "@/constant/canvas";
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit"
 import { RootState } from "..";
+import { clearOtherCanvasReflowData } from "./widgetReflowSlice";
 
 interface DragResizeState {
   /** 是否拖拽*/

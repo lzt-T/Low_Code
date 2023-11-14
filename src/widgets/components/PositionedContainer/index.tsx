@@ -28,7 +28,7 @@ export default function PositionedContainer(props: PositionedContainer) {
   } = props;
 
   /** 在reflow中的样式*/
-  const reflowedPosition = useAppSelector(getReflowByIdSelector(widgetId), equal)
+  const reflowedPosition = useAppSelector(getReflowByIdSelector(widgetId))
   const dragDetails = useAppSelector(dragDetailsSelector)
 
   const top = useMemo(() => {
@@ -46,11 +46,6 @@ export default function PositionedContainer(props: PositionedContainer) {
     const reflowY = reflowedPosition?.Y || 0;
 
     if (reflowedPosition) {
-      /** 当dragDetails.draggedOn存在时,不是当前画布的儿子，不移动*/
-      if (!!dragDetails.draggedOn && dragDetails.draggedOn != parentId) {
-        return {}
-      }
-
       return {
         transform: `translate(${reflowX}px,${reflowY}px)`,
         transition: `transform 100ms linear`,

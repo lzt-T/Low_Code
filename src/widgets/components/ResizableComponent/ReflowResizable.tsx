@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react"
-import { WidgetProps } from "@/interface/widget"
 import { animated, useSpring } from 'react-spring'
 import ResizeBorder from "./ResizeBorder"
 import { WIDGET_PADDING } from "@/constant/widget"

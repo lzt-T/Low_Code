@@ -1,5 +1,6 @@
 import { createSelector, createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { RootState } from '..'
+import _ from 'lodash'
 
 
 
@@ -85,6 +86,19 @@ const widgetReflowSlice = createSlice({
     setWidgetsSpaceGraph(state, action) {
       state.widgetsSpaceGraph = { ...action.payload };
     },
+
+    /**
+    * @description 清空其他画布的reflow数据
+    * @param payload 儿子部件id列表
+    * @returns
+    */
+    clearOtherCanvasReflowData(state, action: {
+      payload: [string]
+    }) {
+      let resultReflowData: any = {};
+      resultReflowData=_.pick(state.reflowingWidgets,action.payload)
+      state.reflowingWidgets = { ...resultReflowData }
+    },
   }
 })
 
@@ -93,7 +107,8 @@ export const {
   reflowMove,
   setReflowingWidgets,
   setWidgetsSpaceGraph,
-  setReflowingWidgetsOne
+  setReflowingWidgetsOne,
+  clearOtherCanvasReflowData
 } = widgetReflowSlice.actions
 
 export const isWidgetReflowingSelector = (state: RootState) => state.widgetReflow.isReflowing
@@ -101,15 +116,27 @@ export const widgetsSpaceGraphSelector = (state: RootState) => state.widgetReflo
 
 export default widgetReflowSlice.reducer
 
-export const getReflowSelector = (state: RootState): WidgetReflowState => {
-  return state.widgetReflow
+export const getReflowSelector = (state: RootState): any => {
+  return state.widgetReflow.reflowingWidgets
 }
 
 export const getReflowByIdSelector = (widgetId: string) => {
-  return createSelector(getReflowSelector, (reflowState: WidgetReflowState) => {
-    if (reflowState.reflowingWidgets) {
-      return reflowState.reflowingWidgets[widgetId]
+  return createSelector(getReflowSelector, (reflowingWidgets: any) => {
+    if (reflowingWidgets) {
+      return reflowingWidgets[widgetId]
     }
     return undefined
   })
+}
+
+/**
+* @description 根据画布id清空其他画布的reflow数据
+* @param canvasId 当前画布id
+* @returns
+*/
+export const clearReflowingWidgetsByIdChunk = (canvasId: string) => { 
+  return (dispatch: any, getState: any) => { 
+    let childrenKeyList = getState().canvasWidgets[canvasId].children;
+    dispatch(clearOtherCanvasReflowData(childrenKeyList))
+  }
 }

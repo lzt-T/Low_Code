@@ -1,4 +1,4 @@
-import { setReflowingWidgets, setReflowingWidgetsOne, stopReflow, widgetsSpaceGraphSelector } from "@/store/slices/widgetReflowSlice";
+import { clearReflowingWidgetsByIdChunk, setReflowingWidgets, setReflowingWidgetsOne, stopReflow, widgetsSpaceGraphSelector } from "@/store/slices/widgetReflowSlice";
 import { useAppDispatch, useAppSelector } from "./redux";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ReSizeDirection, ReflowDirection } from "@/enum/move";
@@ -1033,6 +1033,7 @@ export const useDragging = (
     /** 画布目标切换，停止*/
     if (!isCurrentCanvas) {
       if (isHasDragging.current) {
+        dispatch(clearReflowingWidgetsByIdChunk(_draggedOnCanvasId.current))
         cancelAnimationFrame(draggingAnimation.current);
         isHasDragging.current = false
       }

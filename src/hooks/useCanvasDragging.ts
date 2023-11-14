@@ -1,7 +1,7 @@
 import { RefObject, useCallback, useEffect, useMemo, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "./redux";
-import { dragDetailsSelector, endDragging, isDraggingSelector, isResizingSelector, setDraggedOn, setIsDragging } from "@/store/slices/dragResize";
-import { getAbsolutePixels, getNearestParentCanvas } from "@/utils/helpers";
+import { dragDetailsSelector, isDraggingSelector, isResizingSelector, setDraggedOn, setIsDragging } from "@/store/slices/dragResize";
+import { getNearestParentCanvas } from "@/utils/helpers";
 import { useDragging } from "./useDragging";
 import { MAIN_CONTAINER_WIDGET_ID } from "@/constant/canvas";
 
