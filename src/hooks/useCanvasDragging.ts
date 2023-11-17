@@ -1,9 +1,12 @@
 import { RefObject, useCallback, useEffect, useMemo, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "./redux";
-import { dragDetailsSelector, isDraggingSelector, isResizingSelector, setDraggedOn, setIsDragging } from "@/store/slices/dragResize";
+import { dragDetailsSelector, isDraggingSelector, isResizingSelector, setDraggedOn, setIsDragging, lastDraggedOnSelector, setDraggingStatus, draggingStatusSelector, leaveContainerDirectionSelector } from "@/store/slices/dragResize";
 import { getNearestParentCanvas } from "@/utils/helpers";
 import { useDragging } from "./useDragging";
 import { MAIN_CONTAINER_WIDGET_ID } from "@/constant/canvas";
+import { getWidgetsSelector } from "@/store/slices/canvasWidgets";
+import { DraggingStatus } from "@/enum/move";
+import { DirectionAttributes } from "@/interface/space";
 
 export default function useCanvasDragging(
   slidingArenaRef: RefObject<HTMLDivElement>,
@@ -22,11 +25,14 @@ export default function useCanvasDragging(
 
   const { snapColumnSpace, snapRowSpace, widgetId, parentId } = otherPropsObj
   //拖拽中
-  let { setMousePosition, isCanPlaced, isMoveOutContainer } = useDragging(widgetId, snapColumnSpace, snapRowSpace)
+  let { setMousePosition, isCanPlaced, isMoveOutContainer, setLastMousePosition } = useDragging(widgetId, snapColumnSpace, snapRowSpace)
   const dispatch = useAppDispatch()
   const isResizing = useAppSelector(isResizingSelector)
   const isDragging = useAppSelector(isDraggingSelector)
   const dragDetails = useAppSelector(dragDetailsSelector)
+  const canvasWidgets = useAppSelector(getWidgetsSelector)
+  const draggingStatus = useAppSelector(draggingStatusSelector)
+  const leaveContainerDirection = useAppSelector(leaveContainerDirectionSelector)
   const newWidgetDraggingInfo = useAppSelector((state) => state.ui.dragResize.dragDetails.newWidget)
   /** 可滚动的父元素*/
   const scrollParent: Element | null = getNearestParentCanvas(slidingArenaRef.current)
@@ -74,6 +80,34 @@ export default function useCanvasDragging(
     }
 
     /**
+    * @description 设置上一次鼠标的位置，用于回弹
+    * @param 
+    * @returns
+    */
+    const setLastMousePositionFn = (curMousePosition: { X: number, Y: number }) => {
+      const { topRow, bottomRow, rightColumn, leftColumn, parentRowSpace, parentColumnSpace } = canvasWidgets[dragDetails.lastDraggedOn];
+      let resultX = curMousePosition.X;
+      let resultY = curMousePosition.Y;
+      let condition: Record<DirectionAttributes, () => void> = {
+        [DirectionAttributes.top]: () => {
+          resultY = topRow * parentRowSpace
+        },
+        [DirectionAttributes.bottom]: () => {
+          resultY = bottomRow * parentRowSpace - newWidgetDraggingInfo.rows * snapRowSpace
+        },
+        [DirectionAttributes.left]: () => {
+          resultX = leftColumn * parentColumnSpace - newWidgetDraggingInfo.columns * snapColumnSpace
+        },
+        [DirectionAttributes.right]: () => {
+          resultX = rightColumn * parentColumnSpace
+        },
+      }
+
+      leaveContainerDirection != "" && condition[leaveContainerDirection]()
+      setLastMousePosition(resultX, resultY)
+    }
+
+    /**
     * @description  绘制移动轮廓
     * @param originX 左上角x坐标
     * @param originY 左上角y坐标
@@ -112,6 +146,19 @@ export default function useCanvasDragging(
       /** 在当前画布并且移出时，设置画布为父亲画布*/
       if (isCurrentCanvas && isMoveOutContainer.current && parentId) {
         dispatch(setDraggedOn(parentId))
+        dispatch(setDraggingStatus(DraggingStatus.GO_OUT))
+      }
+
+      /** 离开容器时的回弹效果*/
+      if (isCurrentCanvas && draggingStatus === DraggingStatus.GO_OUT) {
+        setLastMousePositionFn(originActualInfo)
+      }
+
+      /** 将状态变为拖拽的状态*/
+      if (draggingStatus != DraggingStatus.MOVE) {
+        requestAnimationFrame(() => {
+          dispatch(setDraggingStatus(DraggingStatus.MOVE))
+        })
       }
 
       setMousePosition(originActualInfo.X, originActualInfo.Y)
@@ -194,7 +241,8 @@ export default function useCanvasDragging(
     }
   },
     [isDragging, isResizing, newWidgetDraggingInfo, setMousePosition,
-      scrollParent, snapColumnSpace, snapRowSpace, isCurrentCanvas, parentId
+      scrollParent, snapColumnSpace, snapRowSpace, isCurrentCanvas, parentId, dragDetails, widgetId,
+      draggingStatus, leaveContainerDirection
     ]
   )
 

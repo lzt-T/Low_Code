@@ -161,7 +161,7 @@ const initialState: {
     leftColumn: 2,
     rightColumn: 45,
     topRow: 50,
-    bottomRow: 90,
+    bottomRow: 80,
     parentId: '0',
     widgetName: 'CONTAINER Widget',
     type: 'CONTAINER_WIDGET',

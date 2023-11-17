@@ -1,15 +1,15 @@
 import { clearReflowingWidgetsByIdChunk, setReflowingWidgets, setReflowingWidgetsOne, stopReflow, widgetsSpaceGraphSelector } from "@/store/slices/widgetReflowSlice";
 import { useAppDispatch, useAppSelector } from "./redux";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ReSizeDirection, ReflowDirection } from "@/enum/move";
-import { draggedOnSelector, endDragging, isDraggingSelector, setDraggedOn } from "@/store/slices/dragResize";
+import { DraggingStatus, ReSizeDirection, ReflowDirection } from "@/enum/move";
+import { draggedOnSelector, draggingStatusSelector, endDragging, isDraggingSelector, setDraggedOn, setDraggingStatus, setLeaveContainerDirection } from "@/store/slices/dragResize";
 import { addNewWidgetChunk, getWidgetChildrenDetailSelector, getWidgetsSelector, updateWidgets } from "@/store/slices/canvasWidgets";
 import { ReflowData } from "./useResize";
 import _ from "lodash";
 import { COLUM_NUM, MIN_HEIGHT_ROW, MIN_WIDTH_COLUMN } from "@/constant/widget";
 import { WidgetRowCols } from "@/interface/widget";
 import { CONTAINER_WIDGET_DRAG_ENTER_THRESHOLD, MAIN_CONTAINER_WIDGET_ID } from "@/constant/canvas";
-import { Space } from "@/interface/space";
+import { DirectionAttributes, Space } from "@/interface/space";
 
 
 type WidgetsMaxInfo = {
@@ -88,6 +88,10 @@ export const useDragging = (
   /** 宽度*/
   const columns = useRef<number>(0)
   columns.current = newWidgetDraggingInfo.columns
+
+  const draggingStatus = useAppSelector(draggingStatusSelector)
+  const _draggingStatus = useRef<DraggingStatus>(DraggingStatus.NONE)
+  _draggingStatus.current = draggingStatus
 
   /** 父亲边框位置信息*/
   const parentBlackInfo: WidgetRowCols = useMemo(() => {
@@ -585,7 +589,7 @@ export const useDragging = (
       },
     }
 
-    let { startBoundary, endBoundary, positiveDirection, oppositeDirection } = widgetCollisionInfoCondition[direction];
+    let { startBoundary, endBoundary, oppositeDirection } = widgetCollisionInfoCondition[direction];
 
     /** 范围边界*/
     const scopeCondition: Record<ReSizeDirection, (widget: any) => boolean> = {
@@ -631,10 +635,20 @@ export const useDragging = (
       }
     }
 
+    let isSpeed = false;
     sortCanvasWidgets.forEach((item: any) => {
       if (
         scopeCondition[direction](item) && collisionBoundaryCondition[direction](item)
       ) {
+
+        isSpeed = false;
+        if (
+          _draggingStatus.current != DraggingStatus.GO_OUT
+          && Math.abs(startBoundary - endBoundary) >= CONTAINER_WIDGET_DRAG_ENTER_THRESHOLD
+        ) {
+          isSpeed = true;
+        }
+
         widgetsResizeInfo.current.set(item.widgetId, {
           direction,
           leftColumn: item.leftColumn,
@@ -643,7 +657,7 @@ export const useDragging = (
           bottomRow: item.bottomRow,
           moveCriticalValue: item[oppositeDirection],
           /** 是否加速进入*/
-          isSpeed: Math.abs(startBoundary - endBoundary) >= CONTAINER_WIDGET_DRAG_ENTER_THRESHOLD,
+          isSpeed: isSpeed,
           type: item.type,
           widgetId: item.widgetId
         })
@@ -754,24 +768,28 @@ export const useDragging = (
 
 
   /**
-  * @description 检查是否移除容器
+  * @description 检查是否移出容器
   * @param draggingPosition 位置信息 Space
   * @returns
   */
   const checkIsMoveOutContainer = useCallback((draggingPosition: Space) => {
-    let isTrue = false;
+    let isTrue = false;    
     for (let key in draggingPosition) {
-      if (key === 'topRow' && draggingPosition[key] > parentBlackInfo.bottomRow) {
+      if (key === 'topRow' && draggingPosition[key] >= parentBlackInfo.bottomRow) {
+        dispatch(setLeaveContainerDirection(DirectionAttributes.bottom))
         isTrue = true
       }
       if (key === 'bottomRow' && draggingPosition[key] < parentBlackInfo.topRow) {
+        dispatch(setLeaveContainerDirection(DirectionAttributes.top))
         isTrue = true
       }
       if (key === 'leftColumn' && draggingPosition[key] > parentBlackInfo.rightColumn
       ) {
+        dispatch(setLeaveContainerDirection(DirectionAttributes.right))
         isTrue = true
       }
       if (key === 'rightColumn' && draggingPosition[key] < parentBlackInfo.leftColumn) {
+        dispatch(setLeaveContainerDirection(DirectionAttributes.left))
         isTrue = true
       }
     }
@@ -881,6 +899,7 @@ export const useDragging = (
         /** 加速进入画布，设置画布Id*/
         if (value.isSpeed && value.type === 'CONTAINER_WIDGET') {
           dispatch(setDraggedOn(value.widgetId))
+          dispatch(setDraggingStatus(DraggingStatus.ENTER))
         }
 
         contactArrId.push(key);
@@ -1018,6 +1037,10 @@ export const useDragging = (
     mousePosition.current = { x, y }
   }, [])
 
+  const setLastMousePosition = useCallback((x: number, y: number) => {
+    lastMousePosition.current = { x, y }
+  }, [])
+
 
   /** 大小变化方向*/
   const dragDirection = useMemo((): Record<ReSizeDirection, string> => {
@@ -1064,6 +1087,7 @@ export const useDragging = (
   return {
     isMoveOutContainer,
     isCanPlaced,
-    setMousePosition
+    setMousePosition,
+    setLastMousePosition
   }
 }

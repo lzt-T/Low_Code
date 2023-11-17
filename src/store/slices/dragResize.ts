@@ -1,7 +1,8 @@
 import { MAIN_CONTAINER_WIDGET_ID } from "@/constant/canvas";
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit"
 import { RootState } from "..";
-import { clearOtherCanvasReflowData } from "./widgetReflowSlice";
+import { DraggingStatus } from "@/enum/move";
+import { DirectionAttributes } from "@/interface/space";
 
 interface DragResizeState {
   /** 是否拖拽*/
@@ -10,8 +11,15 @@ interface DragResizeState {
   isDraggingDisabled: boolean;
   dragDetails: {
     newWidget: any;
+    /** 当前画布*/
     draggedOn: string;
+    /** 上一次的画布id*/
+    lastDraggedOn: string;
   },
+  /** 拖拽的状态*/
+  draggingStatus: DraggingStatus,
+  /** 离开容器方向*/
+  leaveContainerDirection: DirectionAttributes | "";
   selectedWidgets: string[], //选择中的widget
   curFocusedWidgetId?: string; // 当前激活的部件
   lastSelectedWidget: string; // 最后选中的部件
@@ -24,7 +32,10 @@ const initialState: DragResizeState = {
   dragDetails: {
     newWidget: {},
     draggedOn: '',
+    lastDraggedOn: '',
   },
+  draggingStatus: DraggingStatus.NONE,
+  leaveContainerDirection: '',
   selectedWidgets: [],
   curFocusedWidgetId: undefined,
   lastSelectedWidget: "",
@@ -49,7 +60,6 @@ export const dragResizeSlice = createSlice({
       } else {
         state.curFocusedWidgetId = action.payload
       }
-      // state.curFocusedWidgetId = 'one'
     },
     /**
      * 开始拖拽新部件
@@ -66,9 +76,11 @@ export const dragResizeSlice = createSlice({
 
       document.body.style.cursor = "grabbing"
       state.isDragging = action.payload.isDragging
+      state.draggingStatus = DraggingStatus.MOVE
       state.dragDetails = {
         newWidget: action.payload.newWidgetProps,
         draggedOn: MAIN_CONTAINER_WIDGET_ID,
+        lastDraggedOn: MAIN_CONTAINER_WIDGET_ID,
       }
     },
 
@@ -133,7 +145,9 @@ export const dragResizeSlice = createSlice({
       state.dragDetails = {
         newWidget: {},
         draggedOn: '',
+        lastDraggedOn: '',
       }
+      state.draggingStatus = DraggingStatus.NONE
       document.body.style.cursor = "default"
     },
 
@@ -154,8 +168,23 @@ export const dragResizeSlice = createSlice({
     setDraggedOn: (state, action: {
       payload: string
     }) => {
-      state.dragDetails.draggedOn = action.payload      
-    }
+      state.dragDetails.lastDraggedOn = state.dragDetails.draggedOn
+      state.dragDetails.draggedOn = action.payload
+    },
+
+    /** 设置拖拽状态*/
+    setDraggingStatus: (state, action: {
+      payload: DraggingStatus
+    }) => {
+      state.draggingStatus = action.payload
+    },
+
+    /** 设置离开容器方向*/
+     setLeaveContainerDirection: (state, action: {
+       payload: DirectionAttributes | ""
+     }) => { 
+       state.leaveContainerDirection = action.payload
+     }
   },
 })
 
@@ -168,7 +197,9 @@ export const {
   setDraggingCanvas,
   endDragging,
   setIsDragging,
-  setDraggedOn
+  setDraggedOn,
+  setDraggingStatus,
+  setLeaveContainerDirection
 } = dragResizeSlice.actions
 
 export const isDraggingSelector = (state: RootState) => {
@@ -185,6 +216,21 @@ export const curFocusedWidgetIdSelector = (state: RootState) => {
 }
 export const draggedOnSelector = (state: RootState) => {
   return state.ui.dragResize.dragDetails.draggedOn
+}
+
+/** 上一次所在的画布，也就是离开的是那个画布*/
+export const lastDraggedOnSelector = (state: RootState) => {
+  return state.ui.dragResize.dragDetails.lastDraggedOn
+}
+
+/** 拖动的状态*/
+export const draggingStatusSelector = (state: RootState) => {
+  return state.ui.dragResize.draggingStatus
+}
+
+/** 离开容器方向*/
+export const leaveContainerDirectionSelector = (state: RootState) => { 
+  return state.ui.dragResize.leaveContainerDirection
 }
 
 
