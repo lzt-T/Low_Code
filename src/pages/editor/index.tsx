@@ -8,11 +8,17 @@ import { getWidgetChildrenDetailSelector, getWidgetsSelector } from '@/store/sli
 import { buildGraph } from '@/ngReflow/ngReflow';
 import { MAIN_CONTAINER_WIDGET_ID } from '@/constant/canvas';
 import { setWidgetsSpaceGraph } from '@/store/slices/widgetReflowSlice';
+import { draggingTypeSelector } from '@/store/slices/dragResize';
+import { DraggingType } from '@/enum/move';
+import { getSelectedWidgets } from '@/selectors/widgetSelectors';
 
 export default function Editor() {
   const widgetsStructure = useAppSelector(getCanvasWidgetDsl);
   const canvasWidth = useAppSelector(getCanvasWidth)
   const canvasWidgets = useAppSelector(getWidgetsSelector);
+  const draggingType = useAppSelector(draggingTypeSelector);
+  const selectedWidgets = useAppSelector(getSelectedWidgets)
+
 
   /** 组件是否注册完成*/
   const [isLoad, setIsLoad] = useState(false);
@@ -47,11 +53,19 @@ export default function Editor() {
     for (let key in resultData) {
       let widgetList = []
       for (let keyOne in resultData[key]) {
-        let item = resultData[key][keyOne];
-        widgetList.push({
-          ...item,
-          id: item.widgetId
-        })
+
+        if (draggingType === DraggingType.EXISTING_WIDGET
+          && [...selectedWidgets].includes(resultData[key][keyOne].widgetId)
+        ) {
+
+        } else {
+          let item = resultData[key][keyOne];
+          widgetList.push({
+            ...item,
+            id: item.widgetId
+          })
+        }
+
       }
 
       let spaceGraph = buildGraph(widgetList as any);
@@ -59,7 +73,7 @@ export default function Editor() {
     }
 
     dispatch(setWidgetsSpaceGraph(data));
-  }, [canvasWidgets])
+  }, [canvasWidgets, draggingType])
 
 
   return (

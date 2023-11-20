@@ -179,6 +179,10 @@ export default function ResizeBorder(props: ResizeBorderProps) {
 
 
   useEffect(() => {
+    if (!scrollParent) { 
+      return
+    }
+
     const onScroll = (e: Event) => {
       if (!isResizing) {
         return
@@ -202,7 +206,7 @@ export default function ResizeBorder(props: ResizeBorderProps) {
     return () => {
       scrollParent.removeEventListener('scroll', onScroll)
     }
-  }, [isResizing, scrollParent, onResizeDrag])
+  }, [isResizing, scrollParent])
 
   return (
     <>

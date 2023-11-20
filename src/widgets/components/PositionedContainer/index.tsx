@@ -1,8 +1,9 @@
 import { WIDGET_PADDING } from '@/constant/widget';
+import { DraggingStatus, DraggingType } from '@/enum/move';
 import { useAppSelector } from '@/hooks/redux';
-import { dragDetailsSelector, isResizingSelector } from '@/store/slices/dragResize';
+import { getSelectedWidgets } from '@/selectors/widgetSelectors';
+import { dragDetailsSelector, draggingStatusSelector, draggingTypeSelector } from '@/store/slices/dragResize';
 import { getReflowByIdSelector, getReflowSelector } from '@/store/slices/widgetReflowSlice';
-import equal from "fast-deep-equal"
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 
 interface PositionedContainer {
@@ -26,6 +27,10 @@ export default function PositionedContainer(props: PositionedContainer) {
   const { children, widgetId, topRow, parentRowSpace, leftColumn, parentColumnSpace,
     componentHeight, componentWidth, parentId
   } = props;
+
+  const draggingType = useAppSelector(draggingTypeSelector);
+  const selectedWidgets = useAppSelector(getSelectedWidgets);
+  const draggingStatus = useAppSelector(draggingStatusSelector)
 
   /** 在reflow中的样式*/
   const reflowedPosition = useAppSelector(getReflowByIdSelector(widgetId))
@@ -56,6 +61,10 @@ export default function PositionedContainer(props: PositionedContainer) {
     }
   }, [reflowedPosition, dragDetails, parentId])
 
+  /** 当前的widget是否拖拽中*/
+  const currentWidgetIsDragging = useMemo(() => {
+    return draggingType === DraggingType.EXISTING_WIDGET && draggingStatus === DraggingStatus.MOVE && selectedWidgets.includes(widgetId)
+  }, [draggingType, selectedWidgets, widgetId, draggingStatus])
 
   const containerStyle: React.CSSProperties = useMemo(() => {
 
@@ -68,15 +77,21 @@ export default function PositionedContainer(props: PositionedContainer) {
       /** 添加padding*/
       padding: `${WIDGET_PADDING}px`,
       boxSizing: 'border-box',
+      display: currentWidgetIsDragging ? 'none' : 'block',
       ...reflowedPositionStyles
     }
     return style
 
-  }, [top, left, componentHeight, componentWidth, reflowedPosition, reflowedPositionStyles])
+  },
+    [top, left, componentHeight, componentWidth, reflowedPosition,
+      reflowedPositionStyles, currentWidgetIsDragging
+    ]
+  )
 
   return (
     <>
       <div
+        className='position'
         style={containerStyle}
       >
         {children}

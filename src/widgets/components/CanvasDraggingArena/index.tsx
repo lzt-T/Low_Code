@@ -88,8 +88,6 @@ export default function CanvasDraggingArena(props: CanvasDraggingArenaProps) {
 
     let boundingClientRect = slidingArenaRef.current.getBoundingClientRect()
 
-    // console.log(boundingClientRect.height,'asdasd');
-
     setCanvasHeight(boundingClientRect.height)
     setCanvasWidth(boundingClientRect.width)
   }

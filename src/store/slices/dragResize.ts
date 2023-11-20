@@ -1,7 +1,7 @@
 import { MAIN_CONTAINER_WIDGET_ID } from "@/constant/canvas";
-import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit"
+import { createSlice, PayloadAction } from "@reduxjs/toolkit"
 import { RootState } from "..";
-import { DraggingStatus } from "@/enum/move";
+import { DraggingStatus, DraggingType } from "@/enum/move";
 import { DirectionAttributes } from "@/interface/space";
 
 interface DragResizeState {
@@ -10,11 +10,16 @@ interface DragResizeState {
   isResizing: boolean;
   isDraggingDisabled: boolean;
   dragDetails: {
+    draggingType: DraggingType
     newWidget: any;
     /** 当前画布*/
     draggedOn: string;
     /** 上一次的画布id*/
     lastDraggedOn: string;
+    existingWidget: {
+      mouseXInEleProportion: number,
+      mouseYInEleProportion: number,
+    }
   },
   /** 拖拽的状态*/
   draggingStatus: DraggingStatus,
@@ -30,9 +35,14 @@ const initialState: DragResizeState = {
   isResizing: false,
   isDraggingDisabled: false,
   dragDetails: {
+    draggingType: DraggingType.NONE,
     newWidget: {},
     draggedOn: '',
     lastDraggedOn: '',
+    existingWidget: {
+      mouseXInEleProportion: 0,
+      mouseYInEleProportion: 0,
+    }
   },
   draggingStatus: DraggingStatus.NONE,
   leaveContainerDirection: '',
@@ -76,42 +86,21 @@ export const dragResizeSlice = createSlice({
 
       document.body.style.cursor = "grabbing"
       state.isDragging = action.payload.isDragging
-      state.draggingStatus = DraggingStatus.MOVE
+      state.draggingStatus = DraggingStatus.PREPARE_MOVE
       state.dragDetails = {
+        draggingType: DraggingType.NEW_WIDGET,
         newWidget: action.payload.newWidgetProps,
         draggedOn: MAIN_CONTAINER_WIDGET_ID,
         lastDraggedOn: MAIN_CONTAINER_WIDGET_ID,
+        existingWidget:{} as any
       }
     },
 
     /**
-    * 拖拽的目标画布
-    * @param state
-    * @param action
+    * @description 选中部件 (调整大小会选中)
+    * @param 
+    * @returns
     */
-    setDraggingCanvas: (
-      state,
-      action: PayloadAction<{ draggedOn?: string }>
-    ) => {
-      state.dragDetails.draggedOn = action.payload.draggedOn || '';
-    },
-
-    selectMultipleWidgets: (state, action: PayloadAction<{ widgetIds: string[] }>) => {
-      // const { widgetIds } = action.payload
-      // if (widgetIds && !areArraysEqual(widgetIds, state.selectedWidgets)) {
-      //   state.selectedWidgets = widgetIds || []
-      //   if (widgetIds.length > 1) {
-      //     state.lastSelectedWidget = ""
-      //   } else {
-      //     state.lastSelectedWidget = widgetIds[0]
-      //   }
-      // }
-    },
-    /**
-     * 选中部件
-     * @param state
-     * @param action
-     */
     selectWidget: (
       state,
       action: { payload: string },
@@ -119,13 +108,6 @@ export const dragResizeSlice = createSlice({
       state.selectedWidgets = [action.payload]
 
     },
-    selectWidgets: (state, action: PayloadAction<{ widgetIds?: string[] }>) => {
-      // const { widgetIds } = action.payload
-      // if (widgetIds && !areArraysEqual(widgetIds, state.selectedWidgets)) {
-      //   state.selectedWidgets = [...state.selectedWidgets, ...widgetIds]
-      // }
-    },
-
     /**
     * @description
     * @param 
@@ -143,9 +125,11 @@ export const dragResizeSlice = createSlice({
     endDragging: (state) => {
       state.isDragging = false
       state.dragDetails = {
+        draggingType: DraggingType.NONE,
         newWidget: {},
         draggedOn: '',
         lastDraggedOn: '',
+        existingWidget:{} as any
       }
       state.draggingStatus = DraggingStatus.NONE
       document.body.style.cursor = "default"
@@ -180,11 +164,36 @@ export const dragResizeSlice = createSlice({
     },
 
     /** 设置离开容器方向*/
-     setLeaveContainerDirection: (state, action: {
-       payload: DirectionAttributes | ""
-     }) => { 
-       state.leaveContainerDirection = action.payload
-     }
+    setLeaveContainerDirection: (state, action: {
+      payload: DirectionAttributes | ""
+    }) => {
+      state.leaveContainerDirection = action.payload
+    },
+
+
+    /** 设置拖拽的现有元素 */
+    draggingExistingWidget: (state, action: {
+      payload: {
+        canvasId: string,
+        widgetId: string,
+        existingWidget:any
+      }
+    }) => {
+      const { canvasId, widgetId,existingWidget } = action.payload
+
+      document.body.style.cursor = "grabbing"
+      state.isDragging = true;
+      state.draggingStatus = DraggingStatus.PREPARE_MOVE;
+      state.selectedWidgets = [widgetId]
+
+      state.dragDetails = {
+        draggingType: DraggingType.EXISTING_WIDGET,
+        newWidget: {},
+        draggedOn: canvasId,
+        lastDraggedOn: canvasId,
+        existingWidget
+      }
+    }
   },
 })
 
@@ -194,12 +203,12 @@ export const {
   setWidgetResizing,
   selectWidget,
   setNewWidgetDragging,
-  setDraggingCanvas,
   endDragging,
   setIsDragging,
   setDraggedOn,
   setDraggingStatus,
-  setLeaveContainerDirection
+  setLeaveContainerDirection,
+  draggingExistingWidget
 } = dragResizeSlice.actions
 
 export const isDraggingSelector = (state: RootState) => {
@@ -229,9 +238,16 @@ export const draggingStatusSelector = (state: RootState) => {
 }
 
 /** 离开容器方向*/
-export const leaveContainerDirectionSelector = (state: RootState) => { 
+export const leaveContainerDirectionSelector = (state: RootState) => {
   return state.ui.dragResize.leaveContainerDirection
 }
 
+export const draggingTypeSelector = (state: RootState) => {
+  return state.ui.dragResize.dragDetails.draggingType
+}
+
+export const existingWidgetSelector = (state: RootState) => { 
+  return state.ui.dragResize.dragDetails.existingWidget
+}
 
 export default dragResizeSlice.reducer

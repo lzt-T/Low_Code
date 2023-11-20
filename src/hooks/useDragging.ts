@@ -1,15 +1,16 @@
 import { clearReflowingWidgetsByIdChunk, setReflowingWidgets, setReflowingWidgetsOne, stopReflow, widgetsSpaceGraphSelector } from "@/store/slices/widgetReflowSlice";
 import { useAppDispatch, useAppSelector } from "./redux";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { DraggingStatus, ReSizeDirection, ReflowDirection } from "@/enum/move";
-import { draggedOnSelector, draggingStatusSelector, endDragging, isDraggingSelector, setDraggedOn, setDraggingStatus, setLeaveContainerDirection } from "@/store/slices/dragResize";
-import { addNewWidgetChunk, getWidgetChildrenDetailSelector, getWidgetsSelector, updateWidgets } from "@/store/slices/canvasWidgets";
+import { DraggingStatus, DraggingType, ReSizeDirection, ReflowDirection } from "@/enum/move";
+import { draggedOnSelector, draggingStatusSelector, draggingTypeSelector, endDragging, isDraggingSelector, setDraggedOn, setDraggingStatus, setLeaveContainerDirection } from "@/store/slices/dragResize";
+import { addNewWidgetChunk, dragExistWidgetChunk, getWidgetChildrenDetailSelector, getWidgetsSelector, updateWidgets } from "@/store/slices/canvasWidgets";
 import { ReflowData } from "./useResize";
 import _ from "lodash";
 import { COLUM_NUM, MIN_HEIGHT_ROW, MIN_WIDTH_COLUMN } from "@/constant/widget";
 import { WidgetRowCols } from "@/interface/widget";
 import { CONTAINER_WIDGET_DRAG_ENTER_THRESHOLD, MAIN_CONTAINER_WIDGET_ID } from "@/constant/canvas";
 import { DirectionAttributes, Space } from "@/interface/space";
+import { getSelectedWidgets } from "@/selectors/widgetSelectors";
 
 
 type WidgetsMaxInfo = {
@@ -30,6 +31,9 @@ export const useDragging = (
   snapRowSpace: number,
 ) => {
 
+  const draggingType = useAppSelector(draggingTypeSelector);
+  const selectedWidgets = useAppSelector(getSelectedWidgets)
+
   const draggedOnCanvasId = useAppSelector(draggedOnSelector)
   const _draggedOnCanvasId = useRef('');
   _draggedOnCanvasId.current = draggedOnCanvasId
@@ -44,8 +48,27 @@ export const useDragging = (
   const canvasWidgetsChildrenDetailCopy = useRef<any>([]);
   canvasWidgetsChildrenDetailCopy.current = canvasWidgetsChildrenDetail
 
-  /** 新生成widget的信息*/
-  const newWidgetDraggingInfo = useAppSelector((state) => state.ui.dragResize.dragDetails.newWidget)
+  if (draggingType === DraggingType.EXISTING_WIDGET) {
+    canvasWidgetsChildrenDetailCopy.current = canvasWidgetsChildrenDetailCopy.current.filter((item: any) => {
+      return !selectedWidgets.includes(item.widgetId)
+    })
+  }
+
+  /** 新生成的widget信息*/
+  const newWidgetInfo = useAppSelector((state) => state.ui.dragResize.dragDetails.newWidget)
+  /** 拖拽中的widget信息*/
+  const newWidgetDraggingInfo = useMemo(() => {
+    if ([DraggingType.NONE, DraggingType.NEW_WIDGET].includes(draggingType)) {
+      return newWidgetInfo
+    }
+
+    let widgetInfo = canvasWidgetsCopy.current[selectedWidgets[0]]
+
+    return {
+      rows: widgetInfo.bottomRow - widgetInfo.topRow,
+      columns: widgetInfo.rightColumn - widgetInfo.leftColumn,
+    }
+  }, [draggingType, selectedWidgets, newWidgetInfo])
 
   const isDragging = useAppSelector(isDraggingSelector)
   const isHasDragging = useRef(false);
@@ -773,7 +796,7 @@ export const useDragging = (
   * @returns
   */
   const checkIsMoveOutContainer = useCallback((draggingPosition: Space) => {
-    let isTrue = false;    
+    let isTrue = false;
     for (let key in draggingPosition) {
       if (key === 'topRow' && draggingPosition[key] >= parentBlackInfo.bottomRow) {
         dispatch(setLeaveContainerDirection(DirectionAttributes.bottom))
@@ -968,7 +991,7 @@ export const useDragging = (
     let sortCanvasWidgetList = canvasWidgetsChildrenDetailCopy.current
     let direction: any = getDirection(mousePosition.current.x, mousePosition.current.y)
     let draggingPosition = getCurrentDraggingPosition(mousePosition.current.x, mousePosition.current.y)
-    newWidgetPosition.current = draggingPosition;
+    newWidgetPosition.current = draggingPosition;    
     filtrationBoundaryData(draggingPosition)
 
     if (direction != ReflowDirection.UNSET) {
@@ -1018,20 +1041,35 @@ export const useDragging = (
   const onDragEnd = useCallback(() => {
     mousePosition.current = { x: 0, y: 0 }
     //可以放置新增widget
-    if (isCanPlaced.current) {
-      dispatch(updateWidgets({ widgetsRowCol: getUpdateWidgets(reflowData.current) }))
+    if (isCanPlaced.current) {      
+      dispatch(updateWidgets({ newWidgetInfos: getUpdateWidgets(reflowData.current) }))
 
-      dispatch(addNewWidgetChunk(newWidgetPosition.current, {
-        rowSpace: snapRowSpace,
-        columnSpace: snapColumnSpace,
-      }))
-
+      if (draggingType === DraggingType.NEW_WIDGET) {
+        dispatch(addNewWidgetChunk(newWidgetPosition.current, {
+          rowSpace: snapRowSpace,
+          columnSpace: snapColumnSpace,
+        }))
+      }
+      if (draggingType === DraggingType.EXISTING_WIDGET) {
+        dispatch(dragExistWidgetChunk(
+          {
+            position: newWidgetPosition.current,
+            newParentId: canvasId,
+            widgetId: selectedWidgets[0],
+            rowSpace: snapRowSpace,
+            columnSpace: snapColumnSpace,
+          }
+        ))
+      }
     } else {
       console.warn('请放置正确位置');
     }
     dispatch(stopReflow())
     dispatch(endDragging())
-  }, [])
+    setMousePosition(0, 0)
+    setLastMousePosition(0, 0)
+    reflowData.current = {}
+  }, [draggingType, canvasId,selectedWidgets])
 
   const setMousePosition = useCallback((x: number, y: number) => {
     mousePosition.current = { x, y }

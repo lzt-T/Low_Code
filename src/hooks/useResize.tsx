@@ -1392,7 +1392,7 @@ export const useResize = (props: UseResizeProps) => {
     dispatch(updateWidgetAccordingWidgetId(
       {
         widgetId,
-        widgetRowCol: updateWidgetRowCol.current
+        newWidgetInfo: updateWidgetRowCol.current
       }
     ))
     //变化儿子的单位长度
@@ -1414,7 +1414,7 @@ export const useResize = (props: UseResizeProps) => {
 
     dispatch(stopReflow())
     /** 更新受到影响的widget位置*/
-    dispatch(updateWidgets({ widgetsRowCol: updateWidgetsPosition.current }))
+    dispatch(updateWidgets({ newWidgetInfos: updateWidgetsPosition.current }))
   }, [widgetId, getUpdateWidgets, canvasWidgets, parentColumnSpace])
 
   /** 拖拽时widget宽度*/

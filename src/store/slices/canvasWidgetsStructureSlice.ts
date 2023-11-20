@@ -26,6 +26,25 @@ function denormalize(
   return structure
 }
 
+/**
+* @description 找到父亲
+* @param 
+* @returns
+*/
+function findParent(dsl: any, parentId: string) {
+  if (dsl.widgetId === parentId) {
+    return dsl
+  }
+  if (dsl.children) {
+    for (let i = 0; i < dsl.children.length; i++) {
+      let result: any = findParent(dsl.children[i], parentId)
+      if (result) {
+        return result
+      }
+    }
+  }
+}
+
 const initialState: { dsl: any } = {
   dsl: {
     type: "CANVAS_WIDGET",
@@ -100,32 +119,51 @@ const canvasWidgetsStructure = createSlice({
     /** 添加widget到dsl里面*/
     addWidgetStructure: (state, action: { payload: any }) => {
       let { parentId } = action.payload;
-      //递归查找父级
-      const findParent:any = (dsl: any) => {
-        if (dsl.widgetId === parentId) {
-          return dsl
-        }
-        if (dsl.children) {
-          for (let i = 0; i < dsl.children.length; i++) {
-            let result = findParent(dsl.children[i])
-            if (result) {
-              return result
-            }
-          }
-        }
-      }
-      let parent = findParent(state.dsl)
-      if (!parent.children) { 
+      let parent = findParent(state.dsl, parentId)
+      if (!parent.children) {
         parent.children = []
-      } 
+      }
       parent.children.push(action.payload)
+    },
+
+    /** 拖拽现有的widget到其他dsl里面*/
+    dragWidgetToOtherContainer: (state, action: {
+      payload: {
+        widgetInfo: any,
+        oldParentId: string,
+        newParentId: string,
+      }
+    }) => {
+      let { widgetInfo, oldParentId, newParentId } = action.payload
+
+
+      let oldParent = findParent(state.dsl, oldParentId)
+      let newParent = findParent(state.dsl, newParentId)
+      //从旧的父级里面删除
+      oldParent.children = oldParent.children.filter((item: any) => {
+        return item.widgetId != widgetInfo.widgetId
+      })
+      //添加到新的父级里面
+      if (!newParent.children) {
+        newParent.children = []
+      }
+      newParent.children.push({
+        parentId: newParentId,
+        type: widgetInfo.type,
+        widgetId: widgetInfo.widgetId
+      })
+
+      // console.log('asdsadasds');
+
+      // let { widgetId, oldParentId,newParentId } = action.payload
+
     },
   },
 })
 
-
 export const {
-  addWidgetStructure
+  addWidgetStructure,
+  dragWidgetToOtherContainer
 } = canvasWidgetsStructure.actions
 
 /** 获取画布中的widget结构*/

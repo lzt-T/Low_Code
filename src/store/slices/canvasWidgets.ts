@@ -3,7 +3,7 @@ import { CANVAS_DEFAULT_MIN_ROWS, GridDefaults, MAIN_CONTAINER_WIDGET_ID } from 
 import { createSelector, createSlice } from "@reduxjs/toolkit"
 import { RootState } from ".."
 import { RenderModes } from "@/interface/canvas"
-import { addWidgetStructure } from "./canvasWidgetsStructureSlice"
+import canvasWidgetsStructureSlice, { addWidgetStructure, dragWidgetToOtherContainer } from "./canvasWidgetsStructureSlice"
 
 
 
@@ -214,13 +214,13 @@ const canvasWidgetsSlice = createSlice({
       action: {
         payload: {
           widgetId: string,
-          widgetRowCol: any,
+          newWidgetInfo: any,
         }
       }
     ) => {
       state[action.payload.widgetId] = {
         ...state[action.payload.widgetId],
-        ...action.payload.widgetRowCol,
+        ...action.payload.newWidgetInfo,
       }
     },
 
@@ -229,12 +229,12 @@ const canvasWidgetsSlice = createSlice({
       state,
       action: {
         payload: {
-          widgetsRowCol: any,
+          newWidgetInfos: any,
         }
       }
     ) => {
-      Object.keys(action.payload.widgetsRowCol).forEach((key) => {
-        let item = action.payload.widgetsRowCol[key]
+      Object.keys(action.payload.newWidgetInfos).forEach((key) => {
+        let item = action.payload.newWidgetInfos[key]
         state[key] = {
           ...state[key],
           ...item,
@@ -246,6 +246,27 @@ const canvasWidgetsSlice = createSlice({
     addWidget: (state, action) => {
       state[action.payload.parentId].children?.push(action.payload.widgetId)
       state[action.payload.widgetId] = action.payload
+    },
+
+    /** 改变children*/
+    changeChildren: (state, action: {
+      payload: {
+        widgetId: string,
+        oldParentId: string,
+        newParentId: string,
+      }
+    }) => {
+      let { widgetId, oldParentId, newParentId } = action.payload
+      let oldParent = state[oldParentId]
+      let newParent = state[newParentId]
+      oldParent.children = oldParent.children.filter((item: any) => {
+        return item != widgetId
+      })
+
+      if (!newParent.children) {
+        newParent.children = []
+      }
+      newParent.children.push(widgetId)
     }
   }
 })
@@ -343,5 +364,47 @@ export const addNewWidgetChunk = (position: any, parentUnit: any,) => {
     ))
   }
 }
+
+/** 拖拽现有的widget*/
+export const dragExistWidgetChunk = (
+  infoObj: {
+    position: any,
+    newParentId: string,
+    widgetId: string,
+    rowSpace: number,
+    columnSpace: number,
+  }
+ ) => {
+  return (dispatch: any, getState: any) => {
+
+    let { position, newParentId, widgetId, rowSpace, columnSpace } = infoObj
+    const state = getState()
+    let widgetInfo = state.canvasWidgets[widgetId]
+    let oldParentId = widgetInfo.parentId
+    widgetInfo = {
+      ...widgetInfo,
+      parentId: newParentId,
+      topRow: position.topRow,
+      bottomRow: position.bottomRow,
+      leftColumn: position.leftColumn,
+      rightColumn: position.rightColumn,
+      parentRowSpace: rowSpace,
+      parentColumnSpace: columnSpace,
+    }
+    
+    dispatch(canvasWidgetsSlice.actions.updateWidgetAccordingWidgetId(
+      {
+        widgetId,
+        newWidgetInfo: widgetInfo,
+      }
+    ))
+
+    if (oldParentId != newParentId) {
+      dispatch(dragWidgetToOtherContainer({ widgetInfo, oldParentId, newParentId }))
+      dispatch(canvasWidgetsSlice.actions.changeChildren({ widgetId, oldParentId, newParentId }))
+    }
+  }
+}
+
 
 export default canvasWidgetsSlice.reducer
