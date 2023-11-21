@@ -1,46 +1,38 @@
 import { useAppSelector } from "@/hooks/redux";
 import { getWidgetChildrenSelector } from "@/store/slices/canvasWidgets";
-import { dragDetailsSelector, isDraggingSelector, isResizingSelector } from "@/store/slices/dragResize";
+import { isDraggingSelector } from "@/store/slices/dragResize";
 import React, {
   ReactNode,
   memo,
   useMemo,
 } from "react"
 import DragLayerComponent from "../DragLayerComponent";
+import useIsShowDragLayer from "@/hooks/useIsShowDragLayer";
 
 
 interface DropTargetComponentProps {
   children?: ReactNode;
   snapColumnSpace: number;
   snapRowSpace: number;
+  widgetId: string;
+  parentId?: string;
   [propName: string]: any
 };
 
 export function DropTargetComponent(props: DropTargetComponentProps) {
 
-  const { children, snapColumnSpace = 0, snapRowSpace = 0 } = props
-  const isResizing = useAppSelector(isResizingSelector)
+  const { children, snapColumnSpace = 0, snapRowSpace = 0, widgetId, parentId } = props
+  const { isShowDragLayer } = useIsShowDragLayer(widgetId)
   const isDragging = useAppSelector(isDraggingSelector)
-  const dragDetails = useAppSelector(dragDetailsSelector)
-
-  /** 在哪里拖拽*/
-  const draggedOn = useMemo(() => {
-    return dragDetails.draggedOn
-  }, [dragDetails])
-  const childWidgets = useAppSelector(getWidgetChildrenSelector(props.widgetId))
-
+  const childWidgets = useAppSelector(getWidgetChildrenSelector(widgetId))
   /** 是否为空*/
   const isEmpty = useMemo(() => {
-    if (!childWidgets.length && !isDragging && !props.parentId) {
+    if (!childWidgets.length && !isDragging && !parentId) {
       return true
     }
     return false
-  }, [isDragging, childWidgets, props])
+  }, [isDragging, childWidgets, parentId])
 
-  /** 是否展示网格线*/
-  const showDragLayer = useMemo(() => {
-    return (isDragging && draggedOn === props.widgetId) || isResizing
-  }, [isDragging, draggedOn, props, isResizing])
 
   return (
     <div style={{
@@ -54,8 +46,7 @@ export function DropTargetComponent(props: DropTargetComponentProps) {
     }>
       {isEmpty && <div>请拖拽组件</div>}
       {
-        showDragLayer &&
-        (
+        isShowDragLayer && (
           <DragLayerComponent
             parentColumnWidth={snapColumnSpace}
             parentRowHeight={snapRowSpace}

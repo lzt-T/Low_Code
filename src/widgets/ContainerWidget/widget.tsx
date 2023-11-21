@@ -3,12 +3,13 @@ import { ReactNode } from 'react'
 import ContainerComponent from './component'
 import BaseWidget from "@/widgets/components/BaseWidegt"
 import { WidgetProps } from "@/interface/widget";
-import { CONTAINER_GRID_PADDING, GridDefaults, MAIN_CONTAINER_WIDGET_ID } from "@/constant/canvas";
+import { CANVAS_DEFAULT_MIN_HEIGHT_PX, CONTAINER_GRID_PADDING, GridDefaults, MAIN_CONTAINER_WIDGET_ID } from "@/constant/canvas";
 import { WIDGET_PADDING } from "@/constant/widget";
 import WidgetFactory from "@/widgets/WidgetFactory";
 import { compact, map, sortBy } from "lodash"
 import { getCanvasSnapRows } from "@/utils/WidgetPropsUtils";
 import CanvasDraggingArena from "../components/CanvasDraggingArena";
+import DropTargetComponent from "../components/DropTargetComponent";
 
 interface ContainerWidgetProps extends WidgetProps { }
 
@@ -21,6 +22,13 @@ class ContainerWidget extends BaseWidget<ContainerWidgetProps, ContainerWidgetSt
     super(props)
     this.state = {
       isLoading: false
+    }
+  }
+
+
+  getCanvasProps(): any {
+    return {
+      ...this.props,
     }
   }
 
@@ -71,32 +79,50 @@ class ContainerWidget extends BaseWidget<ContainerWidgetProps, ContainerWidgetSt
     )
   }
 
+  /** 渲染容器内容拖拽时的经纬图*/
+  renderAsDropTarget() {
+    const canvasProps = this.getCanvasProps()
+    /** 画布单元格的宽高值*/
+    const snapSpace = this.getSnapSpaces()
+
+    return (
+      <DropTargetComponent
+        {...canvasProps}
+        snapColumnSpace={snapSpace.snapColumnSpace}
+        snapRowSpace={snapSpace.snapRowSpace}
+        minHeight={this.props.minHeight || CANVAS_DEFAULT_MIN_HEIGHT_PX}
+      >
+        {this.renderAsContainerComponent(canvasProps)}
+      </DropTargetComponent>
+    )
+  }
+
   renderAsContainerComponent(props: ContainerWidgetProps) {
     const snapRows = getCanvasSnapRows(props)
     let height = snapRows * GridDefaults.DEFAULT_GRID_ROW_HEIGHT
     return (
       <ContainerComponent {...props}>
         {
-          // props.type === 'CANVAS_WIDGET' &&
-          //  props.renderMode === RenderModes.CANVAS &&
-          // (
-            //canvas上画的框和拖拽操作
-            <CanvasDraggingArena
-              {...this.getSnapSpaces()}
-              // canExtend={props.canExtend}
-              // dropDisabled={!!props.dropDisabled}
-              // noPad={this.props.noPad}
-              parentId={props.parentId}
-              // snapRows={snapRows}
-              widgetId={props.widgetId}
-            />
-          // )
+          //canvas上画的框和拖拽操作
+          <CanvasDraggingArena
+            {...this.getSnapSpaces()}
+            parentId={props.parentId}
+            widgetId={props.widgetId}
+          />
         }
         {/* 画布上的widget */}
         {this.renderChildren()}
       </ContainerComponent>
     )
   }
+
+  getCanvasView() {
+    if (!this.props.dropDisabled) {
+      return this.renderAsDropTarget()
+    }
+    return this.getPageView()
+  }
+
 
   getPageView() {
     return this.renderAsContainerComponent(this.props)

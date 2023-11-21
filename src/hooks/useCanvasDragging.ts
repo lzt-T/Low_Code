@@ -292,7 +292,7 @@ export default function useCanvasDragging(
     }
   },
     [
-      onScroll, onWindowMouseMove, scrollParent, slidingArenaRef.current
+      onScroll, onWindowMouseMove, onMouseup, scrollParent, slidingArenaRef.current
     ]
   )
 }

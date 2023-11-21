@@ -31,6 +31,14 @@ export const useDragging = (
   snapRowSpace: number,
 ) => {
 
+  /** 画布单位宽度大小*/
+  const columnSpace = useRef(0)
+  columnSpace.current = snapColumnSpace
+
+  /** 画布单位高度大小*/
+  const rowSpace = useRef(0)
+  rowSpace.current = snapRowSpace
+
   const draggingType = useAppSelector(draggingTypeSelector);
   const selectedWidgets = useAppSelector(getSelectedWidgets)
 
@@ -122,7 +130,7 @@ export const useDragging = (
 
     return {
       topRow: 0,
-      bottomRow: canvasId === MAIN_CONTAINER_WIDGET_ID ? parent?.bottomRow / snapRowSpace : parent?.bottomRow - parent?.topRow,
+      bottomRow: canvasId === MAIN_CONTAINER_WIDGET_ID ? parent?.bottomRow / rowSpace.current : parent?.bottomRow - parent?.topRow,
       leftColumn: 0,
       // rightColumn: canvasId === MAIN_CONTAINER_WIDGET_ID ? parent.snapColumns : parent?.rightColumn - parent?.leftColumn,
       rightColumn: 64,
@@ -184,8 +192,8 @@ export const useDragging = (
 
   /** 获取当前拖拽widget位置信息*/
   const getCurrentDraggingPosition = useCallback((x: number, y: number) => {
-    const startRow = y / snapRowSpace
-    const startColumn = x / snapColumnSpace
+    const startRow = y / rowSpace.current
+    const startColumn = x / columnSpace.current
     return {
       topRow: startRow,
       bottomRow: startRow + rows.current,
@@ -490,10 +498,10 @@ export const useDragging = (
     /** 当前widget所在边框位置*/
     let currentBorderPosition;
     if (direction === ReSizeDirection.TOP || direction === ReSizeDirection.BOTTOM) {
-      currentBorderPosition = widgetItem[startDirection] + reflowDataItem.Y / snapRowSpace;
+      currentBorderPosition = widgetItem[startDirection] + reflowDataItem.Y / rowSpace.current;
     }
     if (direction === ReSizeDirection.LEFT || direction === ReSizeDirection.RIGHT) {
-      currentBorderPosition = widgetItem[startDirection] + reflowDataItem.X / snapColumnSpace;
+      currentBorderPosition = widgetItem[startDirection] + reflowDataItem.X / columnSpace.current;
     }
 
     let affectWidgetList = widgetsSpaceGraphCopy.current[widgetId].relations[dragDirection[direction]]
@@ -512,8 +520,8 @@ export const useDragging = (
         heightNum = residueUnitLen >= MIN_HEIGHT_ROW * serialNumDifference ? residueUnitLen : MIN_HEIGHT_ROW * serialNumDifference
         resultData[widgetId] = {
           ...reflowData.current[widgetId],
-          Y: reflowDataItem.Y + residueExtrusionDifference * snapRowSpace,
-          height: heightNum * snapRowSpace
+          Y: reflowDataItem.Y + residueExtrusionDifference * rowSpace.current,
+          height: heightNum * rowSpace.current
         }
       }
     }
@@ -526,13 +534,13 @@ export const useDragging = (
         heightNum = residueUnitLen >= MIN_HEIGHT_ROW * serialNumDifference ? residueUnitLen : MIN_HEIGHT_ROW * serialNumDifference
         //在下移动时，widget本身就会下移动，当到达最小值的时候才需要进行调整transform
         if (residueUnitLen <= MIN_HEIGHT_ROW * serialNumDifference) {
-          y = Math.abs(residueUnitLen - MIN_HEIGHT_ROW * serialNumDifference) * snapRowSpace
+          y = Math.abs(residueUnitLen - MIN_HEIGHT_ROW * serialNumDifference) * rowSpace.current
         }
 
         resultData[widgetId] = {
           ...reflowData.current[widgetId],
           Y: reflowDataItem.Y - y,
-          height: heightNum * snapRowSpace
+          height: heightNum * rowSpace.current
         }
       }
     }
@@ -544,8 +552,8 @@ export const useDragging = (
         widthNum = residueUnitLen >= MIN_WIDTH_COLUMN * serialNumDifference ? residueUnitLen : MIN_WIDTH_COLUMN * serialNumDifference
         resultData[widgetId] = {
           ...reflowData.current[widgetId],
-          X: reflowDataItem.X + residueExtrusionDifference * snapColumnSpace,
-          width: widthNum * snapColumnSpace
+          X: reflowDataItem.X + residueExtrusionDifference * columnSpace.current,
+          width: widthNum * columnSpace.current
         }
       }
     }
@@ -559,12 +567,12 @@ export const useDragging = (
         widthNum = residueUnitLen >= MIN_WIDTH_COLUMN * serialNumDifference ? residueUnitLen : MIN_WIDTH_COLUMN * serialNumDifference
         //在向右移动的时候，widget本身就会右移动，当到达最小值的时候才需要进行调整transform
         if (residueUnitLen <= MIN_WIDTH_COLUMN * serialNumDifference) {
-          x = Math.abs(residueUnitLen - MIN_WIDTH_COLUMN * serialNumDifference) * snapColumnSpace
+          x = Math.abs(residueUnitLen - MIN_WIDTH_COLUMN * serialNumDifference) * columnSpace.current
         }
         resultData[widgetId] = {
           ...reflowData.current[widgetId],
           X: reflowDataItem.X - x,
-          width: widthNum * snapColumnSpace
+          width: widthNum * columnSpace.current
         }
       }
     }
@@ -587,25 +595,25 @@ export const useDragging = (
       oppositeDirection: string,
     }> = {
       [ReSizeDirection.TOP]: {
-        startBoundary: lastMousePosition.current.y / snapRowSpace,
+        startBoundary: lastMousePosition.current.y / rowSpace.current,
         endBoundary: currentDraggingPosition.topRow,
         positiveDirection: 'topRow',
         oppositeDirection: 'bottomRow',
       },
       [ReSizeDirection.BOTTOM]: {
-        startBoundary: lastMousePosition.current.y / snapRowSpace + rows.current,
+        startBoundary: lastMousePosition.current.y / rowSpace.current + rows.current,
         endBoundary: currentDraggingPosition.bottomRow,
         positiveDirection: 'bottomRow',
         oppositeDirection: 'topRow'
       },
       [ReSizeDirection.LEFT]: {
-        startBoundary: lastMousePosition.current.x / snapColumnSpace,
+        startBoundary: lastMousePosition.current.x / columnSpace.current,
         endBoundary: currentDraggingPosition.leftColumn,
         positiveDirection: 'leftColumn',
         oppositeDirection: 'rightColumn'
       },
       [ReSizeDirection.RIGHT]: {
-        startBoundary: lastMousePosition.current.x / snapColumnSpace + columns.current,
+        startBoundary: lastMousePosition.current.x / columnSpace.current + columns.current,
         endBoundary: currentDraggingPosition.rightColumn,
         positiveDirection: 'rightColumn',
         oppositeDirection: 'leftColumn'
@@ -711,10 +719,10 @@ export const useDragging = (
 
       item = canvasWidgetsCopy.current[key];
 
-      topRow = item.topRow + reflowData[key].Y / snapRowSpace;
-      bottomRow = height ? (item.topRow + reflowData[key].Y / snapRowSpace) + height / snapRowSpace : item.bottomRow + reflowData[key].Y / snapRowSpace;
-      leftColumn = item.leftColumn + reflowData[key].X / snapColumnSpace;
-      rightColumn = width ? (item.leftColumn + reflowData[key].X / snapColumnSpace) + width / snapColumnSpace : item.rightColumn + reflowData[key].X / snapColumnSpace;
+      topRow = item.topRow + reflowData[key].Y / rowSpace.current;
+      bottomRow = height ? (item.topRow + reflowData[key].Y / rowSpace.current) + height / rowSpace.current : item.bottomRow + reflowData[key].Y / rowSpace.current;
+      leftColumn = item.leftColumn + reflowData[key].X / columnSpace.current;
+      rightColumn = width ? (item.leftColumn + reflowData[key].X / columnSpace.current) + width / columnSpace.current : item.rightColumn + reflowData[key].X / columnSpace.current;
 
       //更新画布儿子的ColumnSpace
       if (item.type === 'CONTAINER_WIDGET') {
@@ -843,7 +851,7 @@ export const useDragging = (
         firstWidgetTransform: (transformDistance: number) => {
           return {
             X: 0,
-            Y: transformDistance * snapRowSpace,
+            Y: transformDistance * rowSpace.current,
           }
         },
         isExtrusion: (widgetId: any) => {
@@ -859,7 +867,7 @@ export const useDragging = (
         firstWidgetTransform: (transformDistance: number) => {
           return {
             X: 0,
-            Y: transformDistance * snapRowSpace,
+            Y: transformDistance * rowSpace.current,
           }
         },
         isExtrusion: (widgetId: any) => {
@@ -874,7 +882,7 @@ export const useDragging = (
         },
         firstWidgetTransform: (transformDistance: number) => {
           return {
-            X: transformDistance * snapColumnSpace,
+            X: transformDistance * columnSpace.current,
             Y: 0,
           }
         },
@@ -890,7 +898,7 @@ export const useDragging = (
         },
         firstWidgetTransform: (transformDistance: number) => {
           return {
-            X: transformDistance * snapColumnSpace,
+            X: transformDistance * columnSpace.current,
             Y: 0,
           }
         },
@@ -933,8 +941,8 @@ export const useDragging = (
           unitLength,
           value.direction,
           widgetsSpaceGraphCopy.current,
-          snapRowSpace,
-          snapColumnSpace,
+          rowSpace.current,
+          columnSpace.current,
           collisionReflowData,
           firstTransform,
         )
@@ -991,7 +999,7 @@ export const useDragging = (
     let sortCanvasWidgetList = canvasWidgetsChildrenDetailCopy.current
     let direction: any = getDirection(mousePosition.current.x, mousePosition.current.y)
     let draggingPosition = getCurrentDraggingPosition(mousePosition.current.x, mousePosition.current.y)
-    newWidgetPosition.current = draggingPosition;    
+    newWidgetPosition.current = draggingPosition;
     filtrationBoundaryData(draggingPosition)
 
     if (direction != ReflowDirection.UNSET) {
@@ -1041,13 +1049,13 @@ export const useDragging = (
   const onDragEnd = useCallback(() => {
     mousePosition.current = { x: 0, y: 0 }
     //可以放置新增widget
-    if (isCanPlaced.current) {      
+    if (isCanPlaced.current) {
       dispatch(updateWidgets({ newWidgetInfos: getUpdateWidgets(reflowData.current) }))
 
       if (draggingType === DraggingType.NEW_WIDGET) {
         dispatch(addNewWidgetChunk(newWidgetPosition.current, {
-          rowSpace: snapRowSpace,
-          columnSpace: snapColumnSpace,
+          rowSpace: rowSpace.current,
+          columnSpace: columnSpace.current,
         }))
       }
       if (draggingType === DraggingType.EXISTING_WIDGET) {
@@ -1056,8 +1064,8 @@ export const useDragging = (
             position: newWidgetPosition.current,
             newParentId: canvasId,
             widgetId: selectedWidgets[0],
-            rowSpace: snapRowSpace,
-            columnSpace: snapColumnSpace,
+            rowSpace: rowSpace.current,
+            columnSpace: columnSpace.current,
           }
         ))
       }
@@ -1069,7 +1077,7 @@ export const useDragging = (
     setMousePosition(0, 0)
     setLastMousePosition(0, 0)
     reflowData.current = {}
-  }, [draggingType, canvasId,selectedWidgets])
+  }, [draggingType, canvasId, selectedWidgets])
 
   const setMousePosition = useCallback((x: number, y: number) => {
     mousePosition.current = { x, y }
