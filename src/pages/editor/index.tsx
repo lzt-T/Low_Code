@@ -78,18 +78,11 @@ export default function Editor() {
 
   return (
     <>
-      <div
-        className='canvas'
-        style={{
-          height: "100%",
-          position: 'relative',
-        }}>
-        {isLoad && <Canvas
-          canvasWidth={canvasWidth}
-          widgetsStructure={widgetsStructure}
-        />
-        }
-      </div>
+      {isLoad && <Canvas
+        canvasWidth={canvasWidth}
+        widgetsStructure={widgetsStructure}
+      />
+      }
     </>
   )
 }

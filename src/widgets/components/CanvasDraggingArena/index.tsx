@@ -3,7 +3,6 @@ import useCanvasDragging from '@/hooks/useCanvasDragging';
 import { isDraggingSelector, isResizingSelector } from '@/store/slices/dragResize'
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { CanvasSliderSty } from './style';
-import { getNearestParentCanvas } from '@/utils/helpers';
 
 export interface CanvasDraggingArenaProps {
   /** 画布单位宽度*/
@@ -17,10 +16,7 @@ export interface CanvasDraggingArenaProps {
 }
 
 export default function CanvasDraggingArena(props: CanvasDraggingArenaProps) {
-
   const { snapColumnSpace, snapRowSpace, widgetId, parentId } = props
-
-
   /** 是否调整大小*/
   const isResizing = useAppSelector(isResizingSelector)
   /** 是否拖拽*/
@@ -35,15 +31,15 @@ export default function CanvasDraggingArena(props: CanvasDraggingArenaProps) {
   /** 监听是否在视口*/
   const interSectionObserver = useRef(
     new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        updateCanvasStylesIntersection(entry)
+      entries.forEach(() => {
+        setCanvasSizeAndPosition()
       })
     }),
   )
 
   /** 监听大小变化*/
-  const resizeObserver = useRef(new ResizeObserver(() => {
-
+  const resizeObserver = useRef(new ResizeObserver(() => {    
+    setCanvasSizeAndPosition()
   }))
 
   /** 画板*/
@@ -64,25 +60,11 @@ export default function CanvasDraggingArena(props: CanvasDraggingArenaProps) {
     return !!isDragging
   }, [isDragging])
 
-
-  /**
-  * 更新canvas样式
-  * @param entry
-  */
-  const updateCanvasStylesIntersection = (
-    entry: IntersectionObserverEntry,
-  ) => {
-    if (slidingArenaRef.current) {
-      repositionSliderCanvas(entry)
-    }
-  }
-
   /**
   * @description 设置canvas的大小，及位置
-  * @param entry
   * @returns
   */
-  const repositionSliderCanvas = (entry: IntersectionObserverEntry) => {
+  const setCanvasSizeAndPosition = () => {
     stickyCanvasRef.current.style.top = 0 + "px"
     stickyCanvasRef.current.style.left = 0 + "px"
 
@@ -99,14 +81,14 @@ export default function CanvasDraggingArena(props: CanvasDraggingArenaProps) {
   }, [showCanvas])
 
   useEffect(() => {
-    if (slidingArenaRef.current === null) {
+    if (slidingArenaRef.current === null || !showCanvas) {
       return
     }
     resizeObserver.current.observe(slidingArenaRef.current)
     return () => {
       resizeObserver.current.disconnect()
     }
-  }, [])
+  }, [showCanvas])
 
   return (
     <>
@@ -114,7 +96,7 @@ export default function CanvasDraggingArena(props: CanvasDraggingArenaProps) {
         showCanvas ?
           (
             <>
-              {/* 画布实际大小 */}
+              {/* 画布实际大小，包括滚动   绘制拖拽框 */}
               <canvas ref={stickyCanvasRef}
                 style={{
                   position: 'absolute',
@@ -122,8 +104,9 @@ export default function CanvasDraggingArena(props: CanvasDraggingArenaProps) {
                 height={canvasHeight}
                 width={canvasWidth}
               />
-              {/* 画布实际大小 */}
-              <CanvasSliderSty ref={slidingArenaRef} />
+              {/* 画布实际大小，包括滚动 */}
+              <CanvasSliderSty
+                ref={slidingArenaRef} />
             </>
           )
           : null

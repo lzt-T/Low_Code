@@ -96,11 +96,11 @@ const initialState: { dsl: any } = {
           },
         ]
       },
-      {
-        parentId: MAIN_CONTAINER_WIDGET_ID,
-        type: "BUTTON_WIDGET",
-        widgetId: "six"
-      },
+      // {
+      //   parentId: MAIN_CONTAINER_WIDGET_ID,
+      //   type: "BUTTON_WIDGET",
+      //   widgetId: "six"
+      // },
     ],
   }
 }

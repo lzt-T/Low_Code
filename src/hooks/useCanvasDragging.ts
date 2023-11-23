@@ -3,11 +3,12 @@ import { useAppDispatch, useAppSelector } from "./redux";
 import { dragDetailsSelector, isDraggingSelector, isResizingSelector, setDraggedOn, setIsDragging, setDraggingStatus, draggingStatusSelector, leaveContainerDirectionSelector, draggingTypeSelector, existingWidgetSelector } from "@/store/slices/dragResize";
 import { getNearestParentCanvas } from "@/utils/helpers";
 import { useDragging } from "./useDragging";
-import { MAIN_CONTAINER_WIDGET_ID } from "@/constant/canvas";
+import { MAIN_CONTAINER_WIDGET_ID, SCROLL_BOUNDARY } from "@/constant/canvas";
 import { getWidgetsSelector } from "@/store/slices/canvasWidgets";
-import { DraggingStatus, DraggingType } from "@/enum/move";
+import { DraggingStatus, DraggingType, ScrollDirection } from "@/enum/move";
 import { DirectionAttributes } from "@/interface/space";
 import { getSelectedWidgets } from "@/selectors/widgetSelectors";
+import useScroll, { ScrollStatus } from "./useScroll";
 
 export default function useCanvasDragging(
   slidingArenaRef: RefObject<HTMLDivElement>,
@@ -28,8 +29,7 @@ export default function useCanvasDragging(
   const existingWidget = useAppSelector(existingWidgetSelector)
 
   const { snapColumnSpace, snapRowSpace, widgetId, parentId } = otherPropsObj
-  //拖拽中
-  let { setMousePosition, isCanPlaced, isMoveOutContainer, setLastMousePosition } = useDragging(widgetId, snapColumnSpace, snapRowSpace)
+
   const dispatch = useAppDispatch()
   const isResizing = useAppSelector(isResizingSelector)
   const isDragging = useAppSelector(isDraggingSelector)
@@ -58,6 +58,17 @@ export default function useCanvasDragging(
 
   /** 可滚动的父元素*/
   const scrollParent: Element | null = getNearestParentCanvas(slidingArenaRef.current)
+  let { setMousePosition,
+    isCanPlaced,
+    isMoveOutContainer,
+    setLastMousePosition
+  } = useDragging(widgetId, snapColumnSpace, snapRowSpace, scrollParent)
+  let { setScrollStatus, changeScrollDirection } = useScroll(
+    {
+      scrollParent,
+      canvasId: widgetId,
+    }
+  )
 
   /** 是否是当前画布*/
   const isCurrentCanvas = useMemo(() => {
@@ -74,11 +85,87 @@ export default function useCanvasDragging(
   });
 
   /**
+  * @description 获得滚动方向
+  * @param y 鼠标y坐标 {number}
+  * @returns
+  */
+  const getScrollDirection = useCallback((y: number) => {
+    if (lastMouseMoveEvent.current.offsetY === 0) {
+      return ScrollDirection.NONE
+    }
+    if (lastMouseMoveEvent.current.offsetY > y) {
+      return ScrollDirection.TOP
+    }
+    if (lastMouseMoveEvent.current.offsetY < y) {
+      return ScrollDirection.BOTTOM
+    }
+    return ScrollDirection.UNCHANGED
+  }, [])
+
+  /**
+  * @description 判断是否进行自动滚动
+  * @param y widget左上角y轴坐标 {number}
+  * @returns
+  */
+  const checkIsProceedScroll = useCallback((y: number) => {
+    //是否开始滚动
+    let isProceedScroll = false
+    let scrollDirection;
+    if (scrollParent
+      && scrollParent?.scrollTop + SCROLL_BOUNDARY > y
+      && isCurrentCanvas
+    ) {
+      isProceedScroll = true
+      scrollDirection = getScrollDirection(y)
+      if (scrollDirection === ScrollDirection.TOP) {
+        changeScrollDirection(scrollDirection)
+        setScrollStatus(ScrollStatus.START)
+      }
+    }
+
+    if (scrollParent
+      && scrollParent?.scrollTop + scrollParent?.clientHeight - SCROLL_BOUNDARY < y + newWidgetDraggingInfo.rows * snapRowSpace
+      && isCurrentCanvas
+    ) {
+      isProceedScroll = true
+      scrollDirection = getScrollDirection(y)
+      if (scrollDirection === ScrollDirection.BOTTOM) {
+        changeScrollDirection(scrollDirection)
+        setScrollStatus(ScrollStatus.START)
+      }
+    }
+
+    if (!isProceedScroll) {
+      setScrollStatus(ScrollStatus.END)
+    }
+  }, [scrollParent, newWidgetDraggingInfo, isCurrentCanvas,
+    snapRowSpace, changeScrollDirection]
+  )
+
+
+  /**
+  * @description 初始化
+  * @param 
+  * @returns
+  */
+  const init = useCallback(() => {
+    lastMouseMoveEvent.current = {
+      offsetX: 0,
+      offsetY: 0,
+      scrollY: 0,
+      pageY: 0,
+      pageX: 0,
+    }
+  }, [])
+
+
+  /**
   * @description 获取实际位置
   * @param x left距离 
   * @param y top距离
   * @param columnWidth 画布单位宽度
   * @param rowHeight 画布单位高度
+  * @returns {X: number, Y: number} widget左上角坐标
   */
   const getActualLocation = useCallback((x: number, y: number, columnWidth: number, rowHeight: number) => {
     const snappedX = Math.round(x / columnWidth)
@@ -124,7 +211,7 @@ export default function useCanvasDragging(
     * @description  绘制移动轮廓
     * @param originX 左上角x坐标
     * @param originY 左上角y坐标
-    * @returns
+    * @returns {X: number, Y: number} widget左上角坐标
     */
   const drawMovingContours = useCallback((originX: number, originY: number) => {
     if (!stickyCanvasRef.current) {
@@ -216,6 +303,8 @@ export default function useCanvasDragging(
       )
     }
 
+    checkIsProceedScroll(originActualInfo?.Y || 0)
+
     lastMouseMoveEvent.current = {
       offsetX: originActualInfo?.X,
       offsetY: originActualInfo?.Y,
@@ -225,14 +314,15 @@ export default function useCanvasDragging(
     }
   }, [
     snapColumnSpace, snapRowSpace, newWidgetDraggingInfo,
-    drawMovingContours, widgetId, stickyCanvasRef.current,
-    draggingType, existingWidget
+    drawMovingContours, widgetId,
+    draggingType, existingWidget, checkIsProceedScroll
   ])
 
-  const onScroll = useCallback(() => {
+  const onScroll = useCallback((e: any) => {
     if (!stickyCanvasRef.current) {
       return
     }
+    dispatch(setDraggingStatus(DraggingStatus.DRAG_SCROLL))
     let boundingClientRect = (stickyCanvasRef.current as any).getBoundingClientRect();
     let distance;
     /** 向下*/
@@ -246,14 +336,13 @@ export default function useCanvasDragging(
       lastMouseMoveEvent.current.offsetY + distance,
     )
   }, [
-    drawMovingContours, lastMouseMoveEvent.current, stickyCanvasRef.current
+    drawMovingContours
   ])
 
   useEffect(() => {
     if (draggingType != DraggingType.EXISTING_WIDGET) {
       return
     }
-
     let widgetInfo = canvasWidgets[selectedWidgets[0]];
     let { topRow, leftColumn, parentRowSpace, parentColumnSpace } = widgetInfo;
     let originX = leftColumn * parentColumnSpace;
@@ -278,6 +367,13 @@ export default function useCanvasDragging(
     dispatch(setIsDragging(false))
   }, [])
 
+
+  useEffect(() => {
+    if (!isDragging) {
+      init()
+    }
+  }, [isDragging])
+
   useEffect(() => {
     scrollParent?.addEventListener('scroll', onScroll)
     slidingArenaRef.current?.addEventListener('mouseup', onMouseup)
@@ -292,7 +388,7 @@ export default function useCanvasDragging(
     }
   },
     [
-      onScroll, onWindowMouseMove, onMouseup, scrollParent, slidingArenaRef.current
+      onScroll, onWindowMouseMove, onMouseup, scrollParent
     ]
   )
 }

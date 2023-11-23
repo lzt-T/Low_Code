@@ -55,9 +55,12 @@ export default function DraggableComponent(props: DraggableComponentProps) {
     const widgetWidth = (rightColumn - leftColumn) * parentColumnSpace;
     const widgetHeight = (bottomRow - topRow) * parentRowSpace;
 
+    /** 容器向上滚动的距离，在容器滚动一定距离后拖拽移动用到*/
+    const scrollTop = event.currentTarget.querySelector('.scrollElement')?.scrollTop||0 ;
+
     //鼠标在元素内的比例
     const mouseXInEleProportion = (event.nativeEvent.offsetX + WIDGET_PADDING) / widgetWidth;
-    const mouseYInEleProportion = (event.nativeEvent.offsetY + WIDGET_PADDING) / widgetHeight;
+    const mouseYInEleProportion = (event.nativeEvent.offsetY - scrollTop  + WIDGET_PADDING) / widgetHeight;
     dispatch(draggingExistingWidget({
       canvasId: parentId,
       widgetId,

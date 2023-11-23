@@ -1,14 +1,15 @@
-import { curFocusedWidgetIdSelector, isResizingSelector, selectWidget, setWidgetResizing } from "@/store/slices/dragResize"
+import { curFocusedWidgetIdSelector, isResizingSelector, selectWidget, setWidgetResizing, addRowNumSelector } from "@/store/slices/dragResize"
 import { useCallback, useContext, useEffect, useMemo, useState, useRef } from "react"
 import { useDispatch } from "react-redux"
 import { useAppSelector } from "./redux"
-import { ReSizeDirection, ReflowDirection } from "@/enum/move";
+import { ReSizeDirection, ReflowDirection, ScrollDirection } from "@/enum/move";
 import { getReflowByIdSelector, setReflowingWidgets, stopReflow, widgetsSpaceGraphSelector } from "@/store/slices/widgetReflowSlice";
 import { COLUM_NUM, MIN_HEIGHT_ROW, MIN_WIDTH_COLUMN, WIDGET_PADDING } from "@/constant/widget";
 import _ from 'lodash'
 import { getWidgetChildrenDetailSelector, getWidgetChildrenSelector, getWidgetsSelector, updateWidgetAccordingWidgetId, updateWidgets } from "@/store/slices/canvasWidgets";
 import { WidgetRowCols, WidgetsRowCols } from "@/interface/widget";
-import { MAIN_CONTAINER_WIDGET_ID } from "@/constant/canvas";
+import { MAIN_CONTAINER_WIDGET_ID, SCROLL_BOUNDARY } from "@/constant/canvas";
+import useScroll, { ScrollStatus } from "./useScroll";
 
 interface UseResizeProps {
   parentId?: string;
@@ -20,7 +21,8 @@ interface UseResizeProps {
   topRow: number;
   bottomRow: number;
   parentColumnSpace: number;
-  parentRowSpace: number
+  parentRowSpace: number;
+  scrollParent: any;
   [propsName: string]: any
 }
 
@@ -82,7 +84,7 @@ type WidgetsMaxInfo = {
 export const useResize = (props: UseResizeProps) => {
   const { widgetId, componentWidth, componentHeight, parentId = "",
     leftColumn, rightColumn, topRow, bottomRow, parentColumnSpace,
-    parentRowSpace
+    parentRowSpace, scrollParent
   } = props
   const [newDimensions, setNewDimensions] = useState<DimensionProps>({
     width: componentWidth, // 组件宽度
@@ -157,19 +159,23 @@ export const useResize = (props: UseResizeProps) => {
   /** 受到碰撞挤压影响需要更新的widget位置信息*/
   const updateWidgetsPosition = useRef<any>({})
 
+  const addRowNum = useAppSelector(addRowNumSelector(parentId))
 
-  /** 父亲边框位置信息*/
-  const parentBlackInfo: WidgetRowCols = useMemo(() => {
+  /** 父亲边框信息*/
+  let parentBlackInfo = useRef<any>()
+
+  /** 设置父亲边框信息*/
+  const setParentBlackInfo = useCallback(() => {
     let parent = canvasWidgets[parentId];
 
-    return {
+    parentBlackInfo.current = {
       topRow: 0,
-      bottomRow: parentId === MAIN_CONTAINER_WIDGET_ID ? parent?.bottomRow / parentRowSpace : parent?.bottomRow - parent?.topRow - 1,
+      bottomRow: parentId === MAIN_CONTAINER_WIDGET_ID ? (parent?.bottomRow + addRowNum) / parentRowSpace : parent?.containRows- 1 + addRowNum,
       leftColumn: 0,
-      // rightColumn: parentId === MAIN_CONTAINER_WIDGET_ID ? parent.snapColumns : parent?.rightColumn - parent?.leftColumn - 1,
-      rightColumn: 64
+      rightColumn: 64,
     }
-  }, [canvasWidgets, parentId, parentRowSpace, parentColumnSpace])
+  }, [addRowNum, parentId, canvasWidgets])
+  setParentBlackInfo()
 
   /** 大小变化方向*/
   const dragDirection = useMemo((): Record<ReSizeDirection, string> => {
@@ -180,6 +186,13 @@ export const useResize = (props: UseResizeProps) => {
       [ReSizeDirection.RIGHT]: 'right',
     }
   }, [])
+
+  let { setScrollStatus, changeScrollDirection } = useScroll(
+    {
+      scrollParent,
+      canvasId: parentId,
+    }
+  )
 
   /**
   * @description 设置最后一次鼠标移动的距离
@@ -229,26 +242,26 @@ export const useResize = (props: UseResizeProps) => {
     let endBoundary = 0;
 
     if (direction === 'y') {
-      if (originalStartBoundary <= parentBlackInfo.leftColumn + currentLeftLengthSum.current) {
-        startBoundary = parentBlackInfo.leftColumn + currentLeftLengthSum.current;
+      if (originalStartBoundary <= parentBlackInfo.current.leftColumn + currentLeftLengthSum.current) {
+        startBoundary = parentBlackInfo.current.leftColumn + currentLeftLengthSum.current;
       } else {
         startBoundary = originalStartBoundary;
       }
 
-      if (originalEndBoundary >= parentBlackInfo.rightColumn - currentRightLengthSum.current) {
-        endBoundary = parentBlackInfo.rightColumn - currentRightLengthSum.current
+      if (originalEndBoundary >= parentBlackInfo.current.rightColumn - currentRightLengthSum.current) {
+        endBoundary = parentBlackInfo.current.rightColumn - currentRightLengthSum.current
       } else {
         endBoundary = originalEndBoundary;
       }
     } else {
-      if (originalStartBoundary <= parentBlackInfo.topRow + currentTopLengthSum.current) {
-        startBoundary = parentBlackInfo.topRow + currentTopLengthSum.current;
+      if (originalStartBoundary <= parentBlackInfo.current.topRow + currentTopLengthSum.current) {
+        startBoundary = parentBlackInfo.current.topRow + currentTopLengthSum.current;
       } else {
         startBoundary = originalStartBoundary
       }
 
-      if (originalEndBoundary >= parentBlackInfo.bottomRow - currentBottomLengthSum.current) {
-        endBoundary = parentBlackInfo.bottomRow - currentBottomLengthSum.current
+      if (originalEndBoundary >= parentBlackInfo.current.bottomRow - currentBottomLengthSum.current) {
+        endBoundary = parentBlackInfo.current.bottomRow - currentBottomLengthSum.current
       } else {
         endBoundary = originalEndBoundary
       }
@@ -444,8 +457,8 @@ export const useResize = (props: UseResizeProps) => {
       }
     }
 
-    if (direction === ReSizeDirection.BOTTOM && parentBlackInfo.bottomRow - currentBorderPosition <= widgetsDistanceInfo.current[widgetId].minBoundary) {
-      residueExtrusionDifference = widgetsDistanceInfo.current[widgetId].minBoundary - (parentBlackInfo.bottomRow - currentBorderPosition)
+    if (direction === ReSizeDirection.BOTTOM && parentBlackInfo.current.bottomRow - currentBorderPosition <= widgetsDistanceInfo.current[widgetId].minBoundary) {
+      residueExtrusionDifference = widgetsDistanceInfo.current[widgetId].minBoundary - (parentBlackInfo.current.bottomRow - currentBorderPosition)
       if (residueExtrusionDifference >= 0) {
         residueUnitLen = widgetItem[startDirection] - widgetItem[endDirection] - residueExtrusionDifference
         let y = 0;
@@ -477,7 +490,7 @@ export const useResize = (props: UseResizeProps) => {
     }
 
     if (direction === ReSizeDirection.RIGHT) {
-      residueExtrusionDifference = widgetsDistanceInfo.current[widgetId].minBoundary - (parentBlackInfo.rightColumn - currentBorderPosition)
+      residueExtrusionDifference = widgetsDistanceInfo.current[widgetId].minBoundary - (parentBlackInfo.current.rightColumn - currentBorderPosition)
       if (residueExtrusionDifference >= 0) {
         residueUnitLen = (widgetItem[startDirection] - widgetItem[endDirection]) - residueExtrusionDifference
         let x = 0;
@@ -673,7 +686,7 @@ export const useResize = (props: UseResizeProps) => {
       || direction === ReflowDirection.TOPRIGHT
     ) {
       // 上边框向上最小可以移动的距离
-      minBoundaryY = (parentBlackInfo.topRow - topRow) * parentRowSpace;
+      minBoundaryY = (parentBlackInfo.current.topRow - topRow) * parentRowSpace;
       // 上边框向下最大可以移动的距离
       maxBoundaryY = (bottomRow - topRow - MIN_HEIGHT_ROW) * parentRowSpace;
       _y = getAppropriateNum(_y, minBoundaryY, maxBoundaryY)
@@ -689,7 +702,7 @@ export const useResize = (props: UseResizeProps) => {
       /** 最小边界y*/
       minBoundaryY = -(bottomRow - topRow - MIN_HEIGHT_ROW) * parentRowSpace;
       /** 最大边界y*/
-      maxBoundaryY = (parentBlackInfo.bottomRow - bottomRow) * parentRowSpace;
+      maxBoundaryY = (parentBlackInfo.current.bottomRow - bottomRow) * parentRowSpace;
       _y = getAppropriateNum(_y, minBoundaryY, maxBoundaryY)
 
       _bottomRow += (_y / parentRowSpace);
@@ -700,7 +713,7 @@ export const useResize = (props: UseResizeProps) => {
       || direction === ReflowDirection.TOPLEFT
       || direction === ReflowDirection.BOTTOMLEFT
     ) {
-      minBoundaryX = (parentBlackInfo.leftColumn - leftColumn) * parentColumnSpace
+      minBoundaryX = (parentBlackInfo.current.leftColumn - leftColumn) * parentColumnSpace
       maxBoundaryX = (rightColumn - leftColumn - MIN_WIDTH_COLUMN) * parentColumnSpace
       _x = getAppropriateNum(_x, minBoundaryX, maxBoundaryX)
 
@@ -713,7 +726,7 @@ export const useResize = (props: UseResizeProps) => {
       || direction === ReflowDirection.BOTTOMRIGHT
     ) {
       minBoundaryX = -((rightColumn - leftColumn - MIN_WIDTH_COLUMN) * parentColumnSpace);
-      maxBoundaryX = (parentBlackInfo.rightColumn - rightColumn) * parentColumnSpace
+      maxBoundaryX = (parentBlackInfo.current.rightColumn - rightColumn) * parentColumnSpace
       _x = getAppropriateNum(_x, minBoundaryX, maxBoundaryX)
 
       _rightColumn += (_x / parentColumnSpace);
@@ -1009,16 +1022,16 @@ export const useResize = (props: UseResizeProps) => {
     //是否开始挤压
     const isExtrusionCondition: Record<ReSizeDirection, (widgetId: string) => boolean> = {
       [ReSizeDirection.TOP]: (widgetId: string) => {
-        return widgetsDistanceInfo.current[widgetId].maxDistance > (topRow + mouseMoveDistance / parentRowSpace) - parentBlackInfo.topRow
+        return widgetsDistanceInfo.current[widgetId].maxDistance > (topRow + mouseMoveDistance / parentRowSpace) - parentBlackInfo.current.topRow
       },
       [ReSizeDirection.BOTTOM]: (widgetId: string) => {
-        return widgetsDistanceInfo.current[widgetId].maxDistance > parentBlackInfo.bottomRow - (bottomRow + mouseMoveDistance / parentRowSpace)
+        return widgetsDistanceInfo.current[widgetId].maxDistance > parentBlackInfo.current.bottomRow - (bottomRow + mouseMoveDistance / parentRowSpace)
       },
       [ReSizeDirection.LEFT]: (widgetId: string) => {
-        return widgetsDistanceInfo.current[widgetId].maxDistance > (leftColumn + mouseMoveDistance / parentColumnSpace) - parentBlackInfo.leftColumn
+        return widgetsDistanceInfo.current[widgetId].maxDistance > (leftColumn + mouseMoveDistance / parentColumnSpace) - parentBlackInfo.current.leftColumn
       },
       [ReSizeDirection.RIGHT]: (widgetId: string) => {
-        return widgetsDistanceInfo.current[widgetId].maxDistance > parentBlackInfo.rightColumn - (rightColumn + mouseMoveDistance / parentColumnSpace)
+        return widgetsDistanceInfo.current[widgetId].maxDistance > parentBlackInfo.current.rightColumn - (rightColumn + mouseMoveDistance / parentColumnSpace)
       }
     }
 
@@ -1108,7 +1121,81 @@ export const useResize = (props: UseResizeProps) => {
     getExtrusionReflowData, parentRowSpace, parentColumnSpace,]
   )
 
-  // 进行resize
+
+  /**
+  * @description 获得滚动方向
+  * @param y {number} y的移动距离
+  * @returns
+  */
+  const getScrollDirection = useCallback((direction: ReflowDirection, y: number) => {
+    if (y === 0) {
+      return ScrollDirection.NONE
+    }
+    if (
+      [ReflowDirection.TOP, ReflowDirection.TOPLEFT, ReflowDirection.TOPRIGHT].includes(direction)
+      && y < 0
+    ) {
+      return ScrollDirection.TOP
+    }
+    if (
+      [ReflowDirection.BOTTOM, ReflowDirection.BOTTOMLEFT, ReflowDirection.BOTTOMRIGHT].includes(direction)
+      && y > 0
+    ) {
+      return ScrollDirection.BOTTOM
+    }
+    return ScrollDirection.UNCHANGED
+  }, [])
+
+
+  /**
+  * @description 判断是否进行自动滚动
+  * @param y {number} y的移动距离
+  * @returns
+  */
+  const checkIsProceedScroll = useCallback((resizeDirection: ReflowDirection, y: number) => {
+    let isProceedScroll = false;
+    let scrollDirection;
+
+    if (
+      [ReflowDirection.TOP, ReflowDirection.TOPLEFT, ReflowDirection.TOPRIGHT].includes(resizeDirection)
+      && scrollParent.scrollTop + SCROLL_BOUNDARY > topRow * parentRowSpace + y
+    ) {
+      isProceedScroll = true
+      scrollDirection = getScrollDirection(resizeDirection, y)
+      if (scrollDirection === ScrollDirection.TOP) {
+        setScrollStatus(ScrollStatus.START)
+        changeScrollDirection(scrollDirection)
+      }
+    }
+
+    if (
+      [ReflowDirection.BOTTOM, ReflowDirection.BOTTOMLEFT, ReflowDirection.BOTTOMRIGHT].includes(resizeDirection)
+      && scrollParent.scrollTop + scrollParent.clientHeight - SCROLL_BOUNDARY < bottomRow * parentRowSpace + y
+    ) {
+      isProceedScroll = true
+      scrollDirection = getScrollDirection(resizeDirection, y)
+
+      if (scrollDirection === ScrollDirection.BOTTOM) {
+        setScrollStatus(ScrollStatus.START)
+        changeScrollDirection(scrollDirection)
+      }
+    }
+
+    if (!isProceedScroll) {
+      setScrollStatus(ScrollStatus.END)
+    }
+  }, [scrollParent, bottomRow, topRow,
+    parentRowSpace, setScrollStatus, getScrollDirection]
+  )
+
+  /**
+  * @description 进行resize
+  * @param data {Object}
+  * @param data.x {number} x的移动距离,带正负号
+  * @param data.y {number} y的移动距离,带正负号
+  * @param data.direction {ReflowDirection} 移动方向
+  * @returns
+  */
   const onResizeDrag = useCallback((
     data: {
       x: number,
@@ -1116,11 +1203,14 @@ export const useResize = (props: UseResizeProps) => {
       direction: ReflowDirection
     }
   ) => {
+
+    // console.log(scrollParent.scrollTop,'sadasdsa');
+
     // console.time('aa')
     const { x, y, direction } = data
     reflowData.current = {};
     widgetsDistanceInfo.current = {};
-
+    checkIsProceedScroll(direction, y)
     // console.log(x,y);
 
     let topMaxWidgetNum = 0;
@@ -1212,15 +1302,15 @@ export const useResize = (props: UseResizeProps) => {
 
       let _y = y;
       //到达可碰撞和挤压的移动最大值
-      if (topRow + y / parentRowSpace - parentBlackInfo.topRow - topMaxWidgetNum * MIN_HEIGHT_ROW < 0) {
-        _y = -(topRow - parentBlackInfo.topRow - topMaxWidgetNum * MIN_HEIGHT_ROW) * parentRowSpace
+      if (topRow + y / parentRowSpace - parentBlackInfo.current.topRow - topMaxWidgetNum * MIN_HEIGHT_ROW < 0) {
+        _y = -(topRow - parentBlackInfo.current.topRow - topMaxWidgetNum * MIN_HEIGHT_ROW) * parentRowSpace
 
         currentResizeInfo.transformY = _y;
         currentResizeInfo.height = componentHeight - _y
         currentResizeInfo.topRow = topRow + (_y / parentRowSpace);
-        currentTopLengthSum.current = topWidgetLengthSum.current - Math.abs(topRow + _y / parentRowSpace - parentBlackInfo.topRow - topWidgetLengthSum.current);
+        currentTopLengthSum.current = topWidgetLengthSum.current - Math.abs(topRow + _y / parentRowSpace - parentBlackInfo.current.topRow - topWidgetLengthSum.current);
       }
-      residualValue = (topRow + _y / parentRowSpace) - parentBlackInfo.topRow - topWidgetLengthSum.current;
+      residualValue = (topRow + _y / parentRowSpace) - parentBlackInfo.current.topRow - topWidgetLengthSum.current;
       //当受到挤压时
       if (residualValue <= 0) {
         currentTopLengthSum.current = topWidgetLengthSum.current - Math.abs(residualValue);
@@ -1251,13 +1341,13 @@ export const useResize = (props: UseResizeProps) => {
 
       let _y = y;
       //到达可碰撞和挤压的移动最大值
-      if (parentBlackInfo.bottomRow - (bottomRow + y / parentRowSpace) - bottomMaxWidgetNum * MIN_HEIGHT_ROW < 0) {
-        _y = (parentBlackInfo.bottomRow - bottomRow - bottomMaxWidgetNum * MIN_HEIGHT_ROW) * parentRowSpace
+      if (parentBlackInfo.current.bottomRow - (bottomRow + y / parentRowSpace) - bottomMaxWidgetNum * MIN_HEIGHT_ROW < 0) {
+        _y = (parentBlackInfo.current.bottomRow - bottomRow - bottomMaxWidgetNum * MIN_HEIGHT_ROW) * parentRowSpace
 
         currentResizeInfo.height = componentHeight + _y
         currentResizeInfo.bottomRow = bottomRow + (_y / parentRowSpace);
       }
-      residualValue = parentBlackInfo.bottomRow - (bottomRow + _y / parentRowSpace) - bottomWidgetLengthSum.current;
+      residualValue = parentBlackInfo.current.bottomRow - (bottomRow + _y / parentRowSpace) - bottomWidgetLengthSum.current;
       //当受到挤压时
       if (residualValue <= 0) {
         currentBottomLengthSum.current = bottomWidgetLengthSum.current - Math.abs(residualValue);
@@ -1288,14 +1378,14 @@ export const useResize = (props: UseResizeProps) => {
 
       let _x = x;
       //到达可碰撞和挤压的移动最大值
-      if (leftColumn + x / parentColumnSpace - parentBlackInfo.leftColumn - leftMaxWidgetNum * MIN_WIDTH_COLUMN < 0) {
-        _x = -(leftColumn - parentBlackInfo.leftColumn - leftMaxWidgetNum * MIN_WIDTH_COLUMN) * parentColumnSpace
+      if (leftColumn + x / parentColumnSpace - parentBlackInfo.current.leftColumn - leftMaxWidgetNum * MIN_WIDTH_COLUMN < 0) {
+        _x = -(leftColumn - parentBlackInfo.current.leftColumn - leftMaxWidgetNum * MIN_WIDTH_COLUMN) * parentColumnSpace
 
         currentResizeInfo.leftColumn = leftColumn + (_x / parentColumnSpace);
         currentResizeInfo.width = componentWidth - _x;
         currentResizeInfo.transformX = _x;
       }
-      residualValue = (leftColumn + _x / parentColumnSpace) - parentBlackInfo.leftColumn - leftWidgetLengthSum.current;
+      residualValue = (leftColumn + _x / parentColumnSpace) - parentBlackInfo.current.leftColumn - leftWidgetLengthSum.current;
       //当受到挤压时
       if (residualValue <= 0) {
         currentLeftLengthSum.current = leftWidgetLengthSum.current - Math.abs(residualValue);
@@ -1324,12 +1414,12 @@ export const useResize = (props: UseResizeProps) => {
 
       let _x = x;
       //到达可碰撞和挤压的移动最大值
-      if (parentBlackInfo.rightColumn - (rightColumn + x / parentColumnSpace) - rightMaxWidgetNum * MIN_WIDTH_COLUMN < 0) {
-        _x = (parentBlackInfo.rightColumn - rightColumn - rightMaxWidgetNum * MIN_WIDTH_COLUMN) * parentColumnSpace
+      if (parentBlackInfo.current.rightColumn - (rightColumn + x / parentColumnSpace) - rightMaxWidgetNum * MIN_WIDTH_COLUMN < 0) {
+        _x = (parentBlackInfo.current.rightColumn - rightColumn - rightMaxWidgetNum * MIN_WIDTH_COLUMN) * parentColumnSpace
         currentResizeInfo.rightColumn = rightColumn + (_x / parentColumnSpace);
         currentResizeInfo.width = componentWidth + _x;
       }
-      residualValue = parentBlackInfo.rightColumn - (rightColumn + _x / parentColumnSpace) - rightWidgetLengthSum.current;
+      residualValue = parentBlackInfo.current.rightColumn - (rightColumn + _x / parentColumnSpace) - rightWidgetLengthSum.current;
       //当受到挤压时
       if (residualValue <= 0) {
         currentRightLengthSum.current = rightWidgetLengthSum.current - Math.abs(residualValue);
@@ -1373,7 +1463,8 @@ export const useResize = (props: UseResizeProps) => {
     parentBlackInfo,
     setLastMoveDistance,
     setWidgetResizeDirection,
-    setDirectionWidgetsReflowData
+    setDirectionWidgetsReflowData,
+    checkIsProceedScroll
   ])
 
 

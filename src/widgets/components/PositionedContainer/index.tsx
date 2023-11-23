@@ -30,7 +30,7 @@ export default function PositionedContainer(props: PositionedContainer) {
 
   const draggingType = useAppSelector(draggingTypeSelector);
   const selectedWidgets = useAppSelector(getSelectedWidgets);
-  const draggingStatus = useAppSelector(draggingStatusSelector)
+  const draggingStatus = useAppSelector(draggingStatusSelector);
 
   /** 在reflow中的样式*/
   const reflowedPosition = useAppSelector(getReflowByIdSelector(widgetId))
@@ -63,7 +63,13 @@ export default function PositionedContainer(props: PositionedContainer) {
 
   /** 当前的widget是否拖拽中*/
   const currentWidgetIsDragging = useMemo(() => {
-    return draggingType === DraggingType.EXISTING_WIDGET && draggingStatus === DraggingStatus.MOVE && selectedWidgets.includes(widgetId)
+    if (draggingType === DraggingType.EXISTING_WIDGET
+      && ![DraggingStatus.NONE,DraggingStatus.PREPARE_MOVE].includes(draggingStatus)
+      && selectedWidgets.includes(widgetId)
+    ) {
+      return true
+    }
+    return false
   }, [draggingType, selectedWidgets, widgetId, draggingStatus])
 
   const containerStyle: React.CSSProperties = useMemo(() => {

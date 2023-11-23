@@ -1,5 +1,5 @@
-import { MAIN_CONTAINER_WIDGET_ID } from "@/constant/canvas";
-import { createSlice, PayloadAction } from "@reduxjs/toolkit"
+import { CANVAS_ADD_ROWS_NUM, MAIN_CONTAINER_WIDGET_ID } from "@/constant/canvas";
+import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit"
 import { RootState } from "..";
 import { DraggingStatus, DraggingType } from "@/enum/move";
 import { DirectionAttributes } from "@/interface/space";
@@ -19,7 +19,7 @@ interface DragResizeState {
     existingWidget: {
       mouseXInEleProportion: number,
       mouseYInEleProportion: number,
-    }
+    },
   },
   /** 拖拽的状态*/
   draggingStatus: DraggingStatus,
@@ -28,6 +28,11 @@ interface DragResizeState {
   selectedWidgets: string[], //选择中的widget
   curFocusedWidgetId?: string; // 当前激活的部件
   lastSelectedWidget: string; // 最后选中的部件
+  /** 增加row数量*/
+  addRowInfo: {
+    widgetId: string,
+    rowNum: number,
+  }
 }
 
 const initialState: DragResizeState = {
@@ -49,6 +54,10 @@ const initialState: DragResizeState = {
   selectedWidgets: [],
   curFocusedWidgetId: undefined,
   lastSelectedWidget: "",
+  addRowInfo: {
+    widgetId: '0',
+    rowNum: 0,
+  }
 }
 
 
@@ -92,7 +101,7 @@ export const dragResizeSlice = createSlice({
         newWidget: action.payload.newWidgetProps,
         draggedOn: MAIN_CONTAINER_WIDGET_ID,
         lastDraggedOn: MAIN_CONTAINER_WIDGET_ID,
-        existingWidget:{} as any
+        existingWidget: {} as any
       }
     },
 
@@ -129,7 +138,7 @@ export const dragResizeSlice = createSlice({
         newWidget: {},
         draggedOn: '',
         lastDraggedOn: '',
-        existingWidget:{} as any
+        existingWidget: {} as any
       }
       state.draggingStatus = DraggingStatus.NONE
       document.body.style.cursor = "default"
@@ -176,10 +185,10 @@ export const dragResizeSlice = createSlice({
       payload: {
         canvasId: string,
         widgetId: string,
-        existingWidget:any
+        existingWidget: any
       }
     }) => {
-      const { canvasId, widgetId,existingWidget } = action.payload
+      const { canvasId, widgetId, existingWidget } = action.payload
 
       document.body.style.cursor = "grabbing"
       state.isDragging = true;
@@ -192,6 +201,31 @@ export const dragResizeSlice = createSlice({
         draggedOn: canvasId,
         lastDraggedOn: canvasId,
         existingWidget
+      }
+    },
+
+    /** 增加容器增加*/
+    addContainerRows: (state, action: {
+      payload: {
+        canvasId: string,
+      }
+    }) => {
+      // 如果不是当前画布，就不增加
+      if (state.addRowInfo.widgetId !== action.payload.canvasId) {
+        state.addRowInfo.rowNum = 0
+      }
+
+      state.addRowInfo = {
+        widgetId: action.payload.canvasId,
+        rowNum: state.addRowInfo.rowNum + CANVAS_ADD_ROWS_NUM
+      }
+    },
+
+    /** 清空增加容器row*/
+    clearAddContainerRows: (state) => {
+      state.addRowInfo = {
+        widgetId: '',
+        rowNum: 0
       }
     }
   },
@@ -208,7 +242,9 @@ export const {
   setDraggedOn,
   setDraggingStatus,
   setLeaveContainerDirection,
-  draggingExistingWidget
+  draggingExistingWidget,
+  addContainerRows,
+  clearAddContainerRows
 } = dragResizeSlice.actions
 
 export const isDraggingSelector = (state: RootState) => {
@@ -246,8 +282,23 @@ export const draggingTypeSelector = (state: RootState) => {
   return state.ui.dragResize.dragDetails.draggingType
 }
 
-export const existingWidgetSelector = (state: RootState) => { 
+export const existingWidgetSelector = (state: RootState) => {
   return state.ui.dragResize.dragDetails.existingWidget
+}
+
+export const addRowInfoSelector = (state: RootState) => {
+  return state.ui.dragResize.addRowInfo
+}
+
+/** 获取画布增加的row*/
+export const addRowNumSelector = (widgetId: string) => {
+  return createSelector(
+    addRowInfoSelector,
+    (addRowInfo) => {
+      if (addRowInfo.widgetId !== widgetId) return 0
+      return addRowInfo.rowNum
+    }
+  )
 }
 
 export default dragResizeSlice.reducer

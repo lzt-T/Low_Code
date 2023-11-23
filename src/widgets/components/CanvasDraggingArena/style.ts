@@ -11,6 +11,4 @@ export const CanvasSliderSty = styled.div`
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   overflow-y: auto;
-  // z-index: 0;
-  // background: #ccc;
 `

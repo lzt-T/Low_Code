@@ -4,6 +4,8 @@ import ResizeBorder from "./ResizeBorder"
 import { WIDGET_PADDING } from "@/constant/widget"
 import { useResize } from "@/hooks/useResize"
 import { getNearestParentCanvas } from "@/utils/helpers"
+import { addRowInfoSelector } from "@/store/slices/dragResize"
+import { useAppSelector } from "@/hooks/redux"
 
 interface ReflowResizableProps {
   parentId?: string;
@@ -57,6 +59,7 @@ export default function ReflowResizable(props: ReflowResizableProps) {
     componentHeight: dimensions.height,
     parentColumnSpace: parentColumnSpace,
     parentRowSpace: parentRowSpace,
+    scrollParent,
   })
 
 

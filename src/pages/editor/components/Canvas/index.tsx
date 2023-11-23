@@ -1,6 +1,3 @@
-import { useAppSelector } from '@/hooks/redux';
-import { getWidgetByIdSelector, getWidgetsSelector } from '@/store/slices/canvasWidgets';
-import { isResizingSelector } from '@/store/slices/dragResize';
 import WidgetFactory from '@/widgets/WidgetFactory';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 
@@ -15,10 +12,11 @@ export default function Canvas(props: CanvasProps) {
 
   return (
     <>
-      <div style={
-        {
-          backgroundColor: '#F8FAFC',
-          // backgroundColor: 'yellow',
+      <div
+        className='canvas'
+        style={
+          {
+          position: 'relative',
           width: `${canvasWidth}px`,
           height: '100%',
         }

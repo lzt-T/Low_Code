@@ -1,11 +1,11 @@
 //画布中widget的值
-import { CANVAS_DEFAULT_MIN_ROWS, GridDefaults, MAIN_CONTAINER_WIDGET_ID } from "@/constant/canvas"
+import { MAIN_CONTAINER_WIDGET_ID } from "@/constant/canvas"
 import { createSelector, createSlice } from "@reduxjs/toolkit"
 import { RootState } from ".."
 import { RenderModes } from "@/interface/canvas"
-import canvasWidgetsStructureSlice, { addWidgetStructure, dragWidgetToOtherContainer } from "./canvasWidgetsStructureSlice"
-
-
+import { addWidgetStructure, dragWidgetToOtherContainer } from "./canvasWidgetsStructureSlice"
+import { clearAddContainerRows } from "./dragResize"
+import _ from "lodash"
 
 const initialState: {
   [propName: string]: {
@@ -27,7 +27,7 @@ const initialState: {
     widgetId: MAIN_CONTAINER_WIDGET_ID,
     topRow: 0,
     // bottomRow: CANVAS_DEFAULT_MIN_ROWS * GridDefaults.DEFAULT_GRID_ROW_HEIGHT, //380
-    bottomRow: 2000, //200行
+    bottomRow: 1400, //1400
     renderMode: RenderModes.CANVAS,
     canExtend: true,
     widgetName: "MainContainer",
@@ -38,7 +38,7 @@ const initialState: {
     rightColumn: 375,
     version: 1,
     isLoading: false,
-    children: ['one', 'two', 'three', 'four', 'five', 'six', 'CONTAINER_ONE'],
+    children: ['one', 'two', 'three', 'four', 'five', 'CONTAINER_ONE'],
     snapColumns: 64,
     noPad: true,
   },
@@ -51,15 +51,9 @@ const initialState: {
     parentId: '0',
     type: 'BUTTON_WIDGET',
     widgetName: 'Button Widget',
-    // renderMode: RenderModes.CANVAS,
-    // isDisabled: false,
-    // version: 1,
-    // isLoading: false,
     text: '1',
     parentColumnSpace: (375 - 8) / 64,
     parentRowSpace: 10,
-    // detachFromLayout: false,
-    // isVisible: false,
   },
   'two': {
     widgetId: 'two',
@@ -137,36 +131,18 @@ const initialState: {
     detachFromLayout: false,
     isVisible: false,
   },
-  'six': {
-    widgetId: 'six',
-    leftColumn: 2,
-    rightColumn: 45,
-    topRow: 150,
-    bottomRow: 170,
-    parentId: '0',
-    type: 'BUTTON_WIDGET',
-    widgetName: 'Button Widget',
-    renderMode: RenderModes.CANVAS,
-    isDisabled: false,
-    version: 1,
-    isLoading: false,
-    text: '6',
-    parentColumnSpace: (375 - 8) / 64,
-    parentRowSpace: 10,
-    detachFromLayout: false,
-    isVisible: false,
-  },
   'CONTAINER_ONE': {
     widgetId: 'CONTAINER_ONE',
     leftColumn: 2,
     rightColumn: 45,
     topRow: 50,
-    bottomRow: 80,
+    bottomRow: 90,
     parentId: '0',
     widgetName: 'CONTAINER Widget',
     type: 'CONTAINER_WIDGET',
     parentRowSpace: 10,
     parentColumnSpace: (375 - 8) / 64,
+    containRows: 40,
     children: ['CONTAINER_BUTTON_ONE', 'CONTAINER_BUTTON_TWO'],
   },
   'CONTAINER_BUTTON_ONE': {
@@ -218,9 +194,21 @@ const canvasWidgetsSlice = createSlice({
         }
       }
     ) => {
-      state[action.payload.widgetId] = {
-        ...state[action.payload.widgetId],
-        ...action.payload.newWidgetInfo,
+      const { widgetId ,newWidgetInfo} = action.payload
+      let widgetInfo = state[widgetId]
+      state[widgetId] = {
+        ...state[widgetId],
+        ...newWidgetInfo,
+      }
+      let resultContainRows = 0;
+      if (widgetInfo.type === 'CONTAINER_WIDGET'
+        && newWidgetInfo.bottomRow - newWidgetInfo.topRow >widgetInfo.containRows
+      ) {
+        resultContainRows = newWidgetInfo.bottomRow - newWidgetInfo.topRow 
+        state[widgetId] = {
+          ...state[widgetId],
+          containRows: resultContainRows,
+        }
       }
     },
 
@@ -248,7 +236,7 @@ const canvasWidgetsSlice = createSlice({
       state[action.payload.widgetId] = action.payload
     },
 
-    /** 改变children*/
+    /** 改变children列表*/
     changeChildren: (state, action: {
       payload: {
         widgetId: string,
@@ -267,7 +255,21 @@ const canvasWidgetsSlice = createSlice({
         newParent.children = []
       }
       newParent.children.push(widgetId)
-    }
+    },
+
+    /** 为canvas添加延长的row*/
+    addContainerRows: (state, action: {
+      payload: {
+        canvasId: string,
+        addRow: number,
+      }
+    }) => {
+      const { canvasId, addRow } = action.payload
+      if (canvasId === MAIN_CONTAINER_WIDGET_ID) {
+        state[canvasId].bottomRow += addRow
+      }
+      state[canvasId].containRows += addRow
+    },
   }
 })
 
@@ -353,6 +355,12 @@ export const addNewWidgetChunk = (position: any, parentUnit: any,) => {
       ...otherInfo,
     }
 
+    if (newWidgetInfo.type === 'CONTAINER_WIDGET') {
+      newWidgetProps = _.merge({}, newWidgetProps, {
+        containRows: otherInfo.rows
+      })
+    }
+
     dispatch(canvasWidgetsSlice.actions.addWidget(newWidgetProps))
 
     dispatch(addWidgetStructure(
@@ -362,6 +370,16 @@ export const addNewWidgetChunk = (position: any, parentUnit: any,) => {
         widgetId: newWidgetInfo.widgetId,
       }
     ))
+
+    //是否需要为画布添加延长的row
+    let addRowInfo = state.ui.dragResize.addRowInfo
+    if (addRowInfo.rowNum != 0) {
+      dispatch(canvasWidgetsSlice.actions.addContainerRows({
+        canvasId: addRowInfo.widgetId,
+        addRow: addRowInfo.rowNum,
+      }))
+      dispatch(clearAddContainerRows())
+    }
   }
 }
 
@@ -374,9 +392,8 @@ export const dragExistWidgetChunk = (
     rowSpace: number,
     columnSpace: number,
   }
- ) => {
+) => {
   return (dispatch: any, getState: any) => {
-
     let { position, newParentId, widgetId, rowSpace, columnSpace } = infoObj
     const state = getState()
     let widgetInfo = state.canvasWidgets[widgetId]
@@ -391,7 +408,7 @@ export const dragExistWidgetChunk = (
       parentRowSpace: rowSpace,
       parentColumnSpace: columnSpace,
     }
-    
+
     dispatch(canvasWidgetsSlice.actions.updateWidgetAccordingWidgetId(
       {
         widgetId,
@@ -402,6 +419,16 @@ export const dragExistWidgetChunk = (
     if (oldParentId != newParentId) {
       dispatch(dragWidgetToOtherContainer({ widgetInfo, oldParentId, newParentId }))
       dispatch(canvasWidgetsSlice.actions.changeChildren({ widgetId, oldParentId, newParentId }))
+    }
+
+    //是否需要为画布添加延长的row
+    let addRowInfo = state.ui.dragResize.addRowInfo
+    if (addRowInfo.rowNum != 0) {
+      dispatch(canvasWidgetsSlice.actions.addContainerRows({
+        canvasId: addRowInfo.widgetId,
+        addRow: addRowInfo.rowNum,
+      }))
+      dispatch(clearAddContainerRows())
     }
   }
 }

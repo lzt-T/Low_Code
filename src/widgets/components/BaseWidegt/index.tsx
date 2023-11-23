@@ -6,8 +6,6 @@ import DraggableComponent from '../DraggableComponent';
 import { RenderModes } from '@/interface/canvas';
 import WidgetNameComponent from '../WidgetName';
 
-
-
 abstract class BaseWidget<T extends WidgetProps, K extends any> extends Component<T, K> {
   /** 获取widget组件Dom*/
   abstract getPageView(): ReactNode;
@@ -106,13 +104,13 @@ abstract class BaseWidget<T extends WidgetProps, K extends any> extends Componen
     )
   }
 
-   /**
-   * 显示widget名称及配置按钮
-   * @param content 组件
-   * @param showControls 控件
-   * @returns
-   */
-   showWidgetName(content: ReactNode, showControls = false) {
+  /**
+  * 显示widget名称及配置按钮
+  * @param content 组件
+  * @param showControls 控件
+  * @returns
+  */
+  showWidgetName(content: ReactNode, showControls = false) {
     return (
       <>
         <WidgetNameComponent

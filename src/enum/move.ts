@@ -29,6 +29,8 @@ export enum DraggingStatus {
   PREPARE_MOVE = 'PREPARE_MOVE',
   /** 在容器中移动*/
   MOVE = 'MOVE',
+  /** 拖拽滚动中*/
+  DRAG_SCROLL = 'DRAG_SCROLL',
 }
 
 /** 枚举拖拽类型*/
@@ -39,4 +41,13 @@ export enum DraggingType {
   NEW_WIDGET = 'NEW_WIDGET',
   /** 现有元素*/
   EXISTING_WIDGET = 'EXISTING_WIDGET'
+}
+
+export enum ScrollDirection {
+  //没有方向
+  NONE = "NONE",
+  //不改变方向
+  UNCHANGED = "UNCHANGED",
+  TOP = "TOP",
+  BOTTOM = "BOTTOM",
 }

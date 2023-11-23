@@ -1,44 +1,53 @@
 import React, { useRef, ReactNode, RefObject, useMemo } from 'react'
 import { MAIN_CONTAINER_WIDGET_ID } from '@/constant/canvas'
 import useIsShowDragLayer from '@/hooks/useIsShowDragLayer'
+import { addRowNumSelector } from '@/store/slices/dragResize'
+import { useAppSelector } from '@/hooks/redux'
+import { ContainerScrollSty, MainContainerSty, ContainerSty } from './style'
 
-function ContainerComponentWrapper(props: any) {
-  const containerRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null)
-  return (
-    <div
-      ref={containerRef}
-    >
-      {props.children}
-    </div>
-  )
+type ContainerComponentProps = {
+  type: string
+  widgetId: string
+  topRow: number
+  bottomRow: number
+  leftColumn: number
+  rightColumn: number
+  parentRowSpace: number
+  parentColumnSpace: number
+  containRows?: number
+  [propsName: string]: any
 }
 
-const ContainerComponent = (props: any) => {
-  const { widgetId } = props
+const ContainerComponent = (props: ContainerComponentProps) => {
+  const { widgetId, topRow, bottomRow, parentRowSpace, type, containRows = 0 } = props
   const { isShowDragLayer } = useIsShowDragLayer(widgetId)
-  
+  const addRowNum = useAppSelector(addRowNumSelector(widgetId))
+
+  let height = useMemo(() => {
+    if (type === 'CANVAS_WIDGET') {
+      return (bottomRow - topRow + addRowNum) * parentRowSpace
+    }
+    return (containRows + addRowNum)*parentRowSpace
+  }, [topRow, bottomRow, parentRowSpace, addRowNum, widgetId, containRows])
+
   return widgetId === MAIN_CONTAINER_WIDGET_ID ? (
-    <ContainerComponentWrapper {...props} />
+    <MainContainerSty
+      $isShowDragLayer={isShowDragLayer}
+      height={height}
+    >
+      {props.children}
+    </MainContainerSty>
   ) : (
-    <div
+    <ContainerScrollSty
       className='scrollElement'
-      style={{
-        boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 3px 0px, rgba(0, 0, 0, 0.06) 0px 1px 2px 0px",
-        height: '100%',
-        // backgroundColor: '#fff',
-        overflowX: 'hidden',
-        overflowY: 'scroll',
-        position: 'relative',
-      }}>
-      <div
-        style={{
-          position: 'relative',
-          height: '890px',
-          backgroundColor: isShowDragLayer ? "transparent" : '#fff',
-        }}>
+    >
+      <ContainerSty
+        height={height}
+        $isShowDragLayer={isShowDragLayer}
+      >
         {props.children}
-      </div>
-    </div>
+      </ContainerSty>
+    </ContainerScrollSty>
   )
 }
 

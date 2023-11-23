@@ -23,4 +23,19 @@ export const GridDefaults = {
 export const CONTAINER_GRID_PADDING = GridDefaults.DEFAULT_GRID_ROW_HEIGHT * 0.6
 
 /** 判断是否加速进入容器阈值*/
-export const CONTAINER_WIDGET_DRAG_ENTER_THRESHOLD = 3.2
+export const CONTAINER_WIDGET_DRAG_ENTER_THRESHOLD = 3.1
+
+/** 滚动的速度*/
+export const SCROLL_SPEED = 15
+
+/** 滚动间隔 毫秒*/
+export const SCROLL_INTERVAL = 100
+
+/** 滚动边界  什么使用开始滚动 */
+export const SCROLL_BOUNDARY = 30
+
+/** 增加row边界值*/
+export const ADD_ROW_BOUNDARY = 50
+
+/** 画布增加Rows数*/
+export const CANVAS_ADD_ROWS_NUM = 3
