@@ -2,8 +2,8 @@ import { clearReflowingWidgetsByIdChunk, setReflowingWidgets, setReflowingWidget
 import { useAppDispatch, useAppSelector } from "./redux";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DraggingStatus, DraggingType, ReSizeDirection, ReflowDirection } from "@/enum/move";
-import { addRowInfoSelector, addRowNumSelector, draggedOnSelector, draggingStatusSelector, draggingTypeSelector, endDragging, isDraggingSelector, setDraggedOn, setDraggingStatus, setLeaveContainerDirection } from "@/store/slices/dragResize";
-import { addNewWidgetChunk, dragExistWidgetChunk, getWidgetChildrenDetailSelector, getWidgetsSelector, updateWidgets } from "@/store/slices/canvasWidgets";
+import { addContainerRows, addRowInfoSelector, addRowNumSelector, draggedOnSelector, draggingStatusSelector, draggingTypeSelector, endDragging, isDraggingSelector, setDraggedOn, setDraggingStatus, setLeaveContainerDirection } from "@/store/slices/dragResize";
+import { addNewWidgetChunk, dragEndChunk, dragExistWidgetChunk, getWidgetChildrenDetailSelector, getWidgetsSelector, updateWidgets } from "@/store/slices/canvasWidgets";
 import { ReflowData } from "./useResize";
 import _ from "lodash";
 import { COLUM_NUM, MIN_HEIGHT_ROW, MIN_WIDTH_COLUMN } from "@/constant/widget";
@@ -857,6 +857,7 @@ export const useDragging = (
       endBoundary: string,
       moveUnitLength: (widget: any) => number
       firstWidgetTransform: (transformDistance: number) => { X: number, Y: number }
+      /** 是否挤压*/
       isExtrusion: (widget: any) => boolean
     }> = {
       [ReSizeDirection.TOP]: {
@@ -888,6 +889,7 @@ export const useDragging = (
           }
         },
         isExtrusion: (widgetId: any) => {
+          return false
           return widgetsDistanceInfo.current[widgetId].maxDistance > parentBlackInfo.current.bottomRow - currentDraggingPosition.bottomRow
         }
       },
@@ -1010,7 +1012,49 @@ export const useDragging = (
 
   }, [])
 
+  /**
+  * @description 获取最大的bottomRow
+  * @param 
+  * @returns {number} 返回最大的bottomRow
+  */
+  const getMaxBottomRow = useCallback(() => {
+    let widgets = getUpdateWidgets(reflowData.current)
+    let maxBottomRow = 0;
+    for (let key in widgets) {
+      let item = widgets[key]
+      if (!!item.bottomRow) {
+        maxBottomRow = Math.max(maxBottomRow, item.bottomRow)
+      }
+    }
 
+    for (let key in canvasWidgetsChildrenDetailCopy.current) {
+      let item = canvasWidgetsChildrenDetailCopy.current[key];
+      maxBottomRow = Math.max(maxBottomRow, item.bottomRow)
+    }
+    return maxBottomRow
+  }, [])
+
+
+  /**
+  * @description 是否需要延长画布
+  * @param 
+  * @returns
+  */
+  const checkIsNeedExtendCanvas = useCallback(() => {
+    let maxBottomRow = getMaxBottomRow()
+    if (maxBottomRow > parentBlackInfo.current.bottomRow) {
+      dispatch(addContainerRows({
+        canvasId,
+        addNum: maxBottomRow - parentBlackInfo.current.bottomRow + 30
+      }))
+    }
+  }, [])
+
+  /**
+  * @description 拖住中  入口函数
+  * @param 
+  * @returns
+  */
   const onDragging = useCallback(() => {
     /** 排序的列表*/
     let sortCanvasWidgetList = canvasWidgetsChildrenDetailCopy.current
@@ -1053,6 +1097,9 @@ export const useDragging = (
 
       /** 检查是否超出容器*/
       checkIsMoveOutContainer(draggingPosition)
+      
+      /** 是否需要延长画布*/
+      // checkIsNeedExtendCanvas()
     }
 
     lastMousePosition.current = mousePosition.current
@@ -1064,32 +1111,20 @@ export const useDragging = (
 
   const onDragEnd = useCallback(() => {
     mousePosition.current = { x: 0, y: 0 }
-    //可以放置新增widget
-    if (isCanPlaced.current) {
-      dispatch(updateWidgets({ newWidgetInfos: getUpdateWidgets(reflowData.current) }))
-
-      if (draggingType === DraggingType.NEW_WIDGET) {
-        dispatch(addNewWidgetChunk(newWidgetPosition.current, {
-          rowSpace: rowSpace.current,
-          columnSpace: columnSpace.current,
-        }))
-      }
-      if (draggingType === DraggingType.EXISTING_WIDGET) {
-        dispatch(dragExistWidgetChunk(
-          {
-            position: newWidgetPosition.current,
-            newParentId: canvasId,
-            widgetId: selectedWidgets[0],
-            rowSpace: rowSpace.current,
-            columnSpace: columnSpace.current,
-          }
-        ))
-      }
-    } else {
+    if (!isCanPlaced.current) {
       console.warn('请放置正确位置');
     }
-    dispatch(stopReflow())
-    dispatch(endDragging())
+    dispatch(dragEndChunk(draggingType, {
+      isCanPlaced: isCanPlaced.current,
+      position: newWidgetPosition.current,
+      parentUnit: {
+        rowSpace: rowSpace.current,
+        columnSpace: columnSpace.current,
+      },
+      affectWidgetInfo: getUpdateWidgets(reflowData.current),
+      newParentId: canvasId,
+      widgetId: selectedWidgets[0],
+    }))
   }, [draggingType, canvasId, selectedWidgets])
 
   const setMousePosition = useCallback((x: number, y: number) => {

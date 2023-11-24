@@ -4,8 +4,10 @@ import { createSelector, createSlice } from "@reduxjs/toolkit"
 import { RootState } from ".."
 import { RenderModes } from "@/interface/canvas"
 import { addWidgetStructure, dragWidgetToOtherContainer } from "./canvasWidgetsStructureSlice"
-import { clearAddContainerRows } from "./dragResize"
+import { clearAddContainerRows, endDragging, setWidgetResizing } from "./dragResize"
 import _ from "lodash"
+import { stopReflow } from "./widgetReflowSlice"
+import { DraggingType } from "@/enum/move"
 
 const initialState: {
   [propName: string]: {
@@ -194,7 +196,7 @@ const canvasWidgetsSlice = createSlice({
         }
       }
     ) => {
-      const { widgetId ,newWidgetInfo} = action.payload
+      const { widgetId, newWidgetInfo } = action.payload
       let widgetInfo = state[widgetId]
       state[widgetId] = {
         ...state[widgetId],
@@ -202,9 +204,9 @@ const canvasWidgetsSlice = createSlice({
       }
       let resultContainRows = 0;
       if (widgetInfo.type === 'CONTAINER_WIDGET'
-        && newWidgetInfo.bottomRow - newWidgetInfo.topRow >widgetInfo.containRows
+        && newWidgetInfo.bottomRow - newWidgetInfo.topRow > widgetInfo.containRows
       ) {
-        resultContainRows = newWidgetInfo.bottomRow - newWidgetInfo.topRow 
+        resultContainRows = newWidgetInfo.bottomRow - newWidgetInfo.topRow
         state[widgetId] = {
           ...state[widgetId],
           containRows: resultContainRows,
@@ -258,7 +260,7 @@ const canvasWidgetsSlice = createSlice({
     },
 
     /** 为canvas添加延长的row*/
-    addContainerRows: (state, action: {
+    addContainerBottomRow: (state, action: {
       payload: {
         canvasId: string,
         addRow: number,
@@ -334,9 +336,17 @@ export const getWidgetChildrenDetailSelector = (parentWidgetId: string) => {
   )
 }
 
+
 /** 为画布添加widget*/
-export const addNewWidgetChunk = (position: any, parentUnit: any,) => {
+export const addNewWidgetChunk = (
+  data: {
+    position: any,
+    rowSpace: number,
+    columnSpace: number,
+  }
+) => {
   return (dispatch: any, getState: any) => {
+    const { position, rowSpace, columnSpace } = data
     const state = getState()
     let newWidgetInfo = state.ui.dragResize.dragDetails.newWidget;
     let parentId = state.ui.dragResize.dragDetails.draggedOn;
@@ -350,8 +360,8 @@ export const addNewWidgetChunk = (position: any, parentUnit: any,) => {
       bottomRow: position.bottomRow,
       leftColumn: position.leftColumn,
       rightColumn: position.rightColumn,
-      parentRowSpace: parentUnit.rowSpace,
-      parentColumnSpace: parentUnit.columnSpace,
+      parentRowSpace: rowSpace,
+      parentColumnSpace: columnSpace,
       ...otherInfo,
     }
 
@@ -371,15 +381,6 @@ export const addNewWidgetChunk = (position: any, parentUnit: any,) => {
       }
     ))
 
-    //是否需要为画布添加延长的row
-    let addRowInfo = state.ui.dragResize.addRowInfo
-    if (addRowInfo.rowNum != 0) {
-      dispatch(canvasWidgetsSlice.actions.addContainerRows({
-        canvasId: addRowInfo.widgetId,
-        addRow: addRowInfo.rowNum,
-      }))
-      dispatch(clearAddContainerRows())
-    }
   }
 }
 
@@ -420,11 +421,94 @@ export const dragExistWidgetChunk = (
       dispatch(dragWidgetToOtherContainer({ widgetInfo, oldParentId, newParentId }))
       dispatch(canvasWidgetsSlice.actions.changeChildren({ widgetId, oldParentId, newParentId }))
     }
+  }
+}
+
+/** 拖拽结束Chunk*/
+export const dragEndChunk = (type: DraggingType, data: {
+  /** 是否可以放置*/
+  isCanPlaced: boolean,
+  position: any,
+  parentUnit: {
+    rowSpace: number,
+    columnSpace: number,
+  },
+  /** 受到影响的widget信息*/
+  affectWidgetInfo: any,
+  newParentId?: string,
+  widgetId?: string,
+}) => {
+  return (dispatch: any, getState: any) => {
+    const { position, parentUnit, newParentId, widgetId,
+      affectWidgetInfo, isCanPlaced
+    } = data
+
+    const state = getState()
+
+    if (isCanPlaced && [DraggingType.NEW_WIDGET, DraggingType.EXISTING_WIDGET].includes(type)) {
+      dispatch(updateWidgets({ newWidgetInfos: affectWidgetInfo }))
+      if (type === DraggingType.NEW_WIDGET) {
+        dispatch(addNewWidgetChunk({
+          position,
+          rowSpace: parentUnit.rowSpace,
+          columnSpace: parentUnit.columnSpace,
+        }))
+      }
+      if (type === DraggingType.EXISTING_WIDGET) {
+        dispatch(dragExistWidgetChunk({
+          position,
+          newParentId: newParentId!,
+          widgetId: widgetId!,
+          rowSpace: parentUnit.rowSpace,
+          columnSpace: parentUnit.columnSpace,
+        }))
+      }
+
+      //是否需要为画布添加延长的row
+      let addRowInfo = state.ui.dragResize.addRowInfo
+      if (addRowInfo.rowNum != 0) {
+        dispatch(canvasWidgetsSlice.actions.addContainerBottomRow({
+          canvasId: addRowInfo.widgetId,
+          addRow: addRowInfo.rowNum,
+        }))
+        dispatch(clearAddContainerRows())
+      }
+    }
+
+
+    dispatch(stopReflow())
+    dispatch(endDragging())
+  }
+}
+
+/** 调整大小结束*/
+export const resizeWidgetEndChunk = (
+  data: {
+    widgetId: string,
+    /** 调整widget信息*/
+    resizeWidgetInfo: any,
+    /** 受到影响的widget信息*/
+    affectWidgetInfo: any,
+  }
+) => {
+  return (dispatch: any, getState: any) => {
+    const state = getState()
+    const { widgetId, resizeWidgetInfo, affectWidgetInfo } = data
+    dispatch(stopReflow())
+    dispatch(setWidgetResizing({ isResizing: false }))
+
+    dispatch(updateWidgetAccordingWidgetId(
+      {
+        widgetId,
+        newWidgetInfo: resizeWidgetInfo,
+      }
+    ))
+    dispatch(updateWidgets({ newWidgetInfos: affectWidgetInfo }))
 
     //是否需要为画布添加延长的row
     let addRowInfo = state.ui.dragResize.addRowInfo
     if (addRowInfo.rowNum != 0) {
-      dispatch(canvasWidgetsSlice.actions.addContainerRows({
+      dispatch(canvasWidgetsSlice.actions.addContainerBottomRow({
         canvasId: addRowInfo.widgetId,
         addRow: addRowInfo.rowNum,
       }))
@@ -432,6 +516,5 @@ export const dragExistWidgetChunk = (
     }
   }
 }
-
 
 export default canvasWidgetsSlice.reducer

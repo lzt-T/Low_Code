@@ -1,12 +1,11 @@
 import { curFocusedWidgetIdSelector, isResizingSelector, selectWidget, setWidgetResizing, addRowNumSelector } from "@/store/slices/dragResize"
 import { useCallback, useContext, useEffect, useMemo, useState, useRef } from "react"
-import { useDispatch } from "react-redux"
-import { useAppSelector } from "./redux"
+import { useAppSelector,useAppDispatch } from "./redux"
 import { ReSizeDirection, ReflowDirection, ScrollDirection } from "@/enum/move";
 import { getReflowByIdSelector, setReflowingWidgets, stopReflow, widgetsSpaceGraphSelector } from "@/store/slices/widgetReflowSlice";
 import { COLUM_NUM, MIN_HEIGHT_ROW, MIN_WIDTH_COLUMN, WIDGET_PADDING } from "@/constant/widget";
 import _ from 'lodash'
-import { getWidgetChildrenDetailSelector, getWidgetChildrenSelector, getWidgetsSelector, updateWidgetAccordingWidgetId, updateWidgets } from "@/store/slices/canvasWidgets";
+import { getWidgetChildrenDetailSelector, getWidgetChildrenSelector, getWidgetsSelector, resizeWidgetEndChunk, updateWidgetAccordingWidgetId, updateWidgets } from "@/store/slices/canvasWidgets";
 import { WidgetRowCols, WidgetsRowCols } from "@/interface/widget";
 import { MAIN_CONTAINER_WIDGET_ID, SCROLL_BOUNDARY } from "@/constant/canvas";
 import useScroll, { ScrollStatus } from "./useScroll";
@@ -95,7 +94,7 @@ export const useResize = (props: UseResizeProps) => {
     direction: ReflowDirection.UNSET
   })
 
-  const dispatch = useDispatch()
+  const dispatch = useAppDispatch()
   /** 是否正在调整*/
   const isResizing = useAppSelector(isResizingSelector)
   /** 当前聚焦的widgetId*/
@@ -170,7 +169,7 @@ export const useResize = (props: UseResizeProps) => {
 
     parentBlackInfo.current = {
       topRow: 0,
-      bottomRow: parentId === MAIN_CONTAINER_WIDGET_ID ? (parent?.bottomRow + addRowNum) / parentRowSpace : parent?.containRows- 1 + addRowNum,
+      bottomRow: parentId === MAIN_CONTAINER_WIDGET_ID ? (parent?.bottomRow + addRowNum) / parentRowSpace : parent?.containRows - 1 + addRowNum,
       leftColumn: 0,
       rightColumn: 64,
     }
@@ -1470,7 +1469,6 @@ export const useResize = (props: UseResizeProps) => {
 
   /** 停止resize*/
   const onResizeStop = useCallback(() => {
-    dispatch(setWidgetResizing({ isResizing: false }))
 
     setNewDimensions((prevState) => ({
       ...prevState,
@@ -1479,13 +1477,6 @@ export const useResize = (props: UseResizeProps) => {
       reset: true,
     }))
 
-    /** 更新大小*/
-    dispatch(updateWidgetAccordingWidgetId(
-      {
-        widgetId,
-        newWidgetInfo: updateWidgetRowCol.current
-      }
-    ))
     //变化儿子的单位长度
     if (canvasWidgets[widgetId].type === 'CONTAINER_WIDGET') {
       let childrenList = canvasWidgets[widgetId].children
@@ -1502,11 +1493,13 @@ export const useResize = (props: UseResizeProps) => {
         }
       }
     }
+    dispatch(resizeWidgetEndChunk({
+      widgetId,
+      resizeWidgetInfo: updateWidgetRowCol.current,
+      affectWidgetInfo: updateWidgetsPosition.current
+    }))
 
-    dispatch(stopReflow())
-    /** 更新受到影响的widget位置*/
-    dispatch(updateWidgets({ newWidgetInfos: updateWidgetsPosition.current }))
-  }, [widgetId, getUpdateWidgets, canvasWidgets, parentColumnSpace])
+  }, [widgetId, canvasWidgets, parentColumnSpace])
 
   /** 拖拽时widget宽度*/
   const widgetWidth = useMemo(() => {

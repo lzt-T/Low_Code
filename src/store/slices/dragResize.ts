@@ -204,20 +204,22 @@ export const dragResizeSlice = createSlice({
       }
     },
 
-    /** 增加容器增加*/
+    /** 增加容器rows*/
     addContainerRows: (state, action: {
       payload: {
         canvasId: string,
+        addNum: number
       }
     }) => {
+      const { canvasId, addNum } = action.payload
       // 如果不是当前画布，就不增加
-      if (state.addRowInfo.widgetId !== action.payload.canvasId) {
+      if (state.addRowInfo.widgetId !== canvasId) {
         state.addRowInfo.rowNum = 0
       }
 
       state.addRowInfo = {
-        widgetId: action.payload.canvasId,
-        rowNum: state.addRowInfo.rowNum + CANVAS_ADD_ROWS_NUM
+        widgetId: canvasId,
+        rowNum: state.addRowInfo.rowNum + addNum
       }
     },
 
