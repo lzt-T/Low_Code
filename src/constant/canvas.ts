@@ -35,7 +35,7 @@ export const SCROLL_INTERVAL = 100
 export const SCROLL_BOUNDARY = 30
 
 /** 增加row边界值*/
-export const ADD_ROW_BOUNDARY = 50
+export const ADD_ROW_BOUNDARY = 3
 
 /** 画布增加Rows数*/
 export const CANVAS_ADD_ROWS_NUM = 3

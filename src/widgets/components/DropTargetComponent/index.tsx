@@ -37,7 +37,7 @@ export function DropTargetComponent(props: DropTargetComponentProps) {
   const childWidgets = useAppSelector(getWidgetChildrenSelector(widgetId))
   const addRowNum = useAppSelector(addRowNumSelector(widgetId))
   let height = useMemo(() => {
-    return (bottomRow - topRow + addRowNum) * parentRowSpace
+    return (bottomRow - topRow + addRowNum * 10) * parentRowSpace
   }, [topRow, bottomRow, parentRowSpace, addRowNum, widgetId])
 
   /** 是否为空*/

@@ -55,7 +55,7 @@ const initialState: DragResizeState = {
   curFocusedWidgetId: undefined,
   lastSelectedWidget: "",
   addRowInfo: {
-    widgetId: '0',
+    widgetId: '',
     rowNum: 0,
   }
 }
@@ -220,7 +220,7 @@ export const dragResizeSlice = createSlice({
       state.addRowInfo = {
         widgetId: canvasId,
         rowNum: state.addRowInfo.rowNum + addNum
-      }
+      }      
     },
 
     /** 清空增加容器row*/

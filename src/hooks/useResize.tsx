@@ -1,13 +1,13 @@
-import { curFocusedWidgetIdSelector, isResizingSelector, selectWidget, setWidgetResizing, addRowNumSelector } from "@/store/slices/dragResize"
+import { curFocusedWidgetIdSelector, isResizingSelector, selectWidget, setWidgetResizing, addRowNumSelector, addContainerRows } from "@/store/slices/dragResize"
 import { useCallback, useContext, useEffect, useMemo, useState, useRef } from "react"
-import { useAppSelector,useAppDispatch } from "./redux"
+import { useAppSelector, useAppDispatch } from "./redux"
 import { ReSizeDirection, ReflowDirection, ScrollDirection } from "@/enum/move";
 import { getReflowByIdSelector, setReflowingWidgets, stopReflow, widgetsSpaceGraphSelector } from "@/store/slices/widgetReflowSlice";
 import { COLUM_NUM, MIN_HEIGHT_ROW, MIN_WIDTH_COLUMN, WIDGET_PADDING } from "@/constant/widget";
 import _ from 'lodash'
 import { getWidgetChildrenDetailSelector, getWidgetChildrenSelector, getWidgetsSelector, resizeWidgetEndChunk, updateWidgetAccordingWidgetId, updateWidgets } from "@/store/slices/canvasWidgets";
 import { WidgetRowCols, WidgetsRowCols } from "@/interface/widget";
-import { MAIN_CONTAINER_WIDGET_ID, SCROLL_BOUNDARY } from "@/constant/canvas";
+import { ADD_ROW_BOUNDARY, CANVAS_ADD_ROWS_NUM, MAIN_CONTAINER_WIDGET_ID, SCROLL_BOUNDARY } from "@/constant/canvas";
 import useScroll, { ScrollStatus } from "./useScroll";
 
 interface UseResizeProps {
@@ -104,7 +104,10 @@ export const useResize = (props: UseResizeProps) => {
   const canvasWidgetsIds = useAppSelector(getWidgetChildrenSelector(parentId));
   const canvasWidgets = useAppSelector(getWidgetsSelector);
   /** 画布中的widgets*/
-  const canvasWidgetsChildrenDetail = useAppSelector(getWidgetChildrenDetailSelector(parentId));
+  const canvasWidgetsChildrenDetail = useAppSelector(getWidgetChildrenDetailSelector(parentId)).filter((item) => {
+    return item.widgetId != widgetId
+  })
+
   /** 位置关系图*/
   const widgetsSpaceGraph = useAppSelector(widgetsSpaceGraphSelector)[parentId];
 
@@ -175,6 +178,8 @@ export const useResize = (props: UseResizeProps) => {
     }
   }, [addRowNum, parentId, canvasWidgets])
   setParentBlackInfo()
+
+  let maxBottomRow = useRef(0);
 
   /** 大小变化方向*/
   const dragDirection = useMemo((): Record<ReSizeDirection, string> => {
@@ -1024,6 +1029,7 @@ export const useResize = (props: UseResizeProps) => {
         return widgetsDistanceInfo.current[widgetId].maxDistance > (topRow + mouseMoveDistance / parentRowSpace) - parentBlackInfo.current.topRow
       },
       [ReSizeDirection.BOTTOM]: (widgetId: string) => {
+        return false
         return widgetsDistanceInfo.current[widgetId].maxDistance > parentBlackInfo.current.bottomRow - (bottomRow + mouseMoveDistance / parentRowSpace)
       },
       [ReSizeDirection.LEFT]: (widgetId: string) => {
@@ -1187,6 +1193,46 @@ export const useResize = (props: UseResizeProps) => {
     parentRowSpace, setScrollStatus, getScrollDirection]
   )
 
+
+  /**
+  * @description 获取最大的bottomRow
+  * @param 
+  * @returns {number} 返回最大的bottomRow
+  */
+  const getMaxBottomRow = useCallback(() => {
+    let widgets = currentPosition.current
+    
+    let maxBottomRow = 0;
+    for (let key in widgets) {
+      let item = widgets[key]
+      if (!!item.bottomRow) {
+        maxBottomRow = Math.max(maxBottomRow, item.bottomRow)
+      }
+    }
+
+    maxBottomRow = Math.max(maxBottomRow, updateWidgetRowCol.current.bottomRow)
+    return maxBottomRow
+  }, [canvasWidgetsChildrenDetail])
+
+
+  /**
+  * @description 是否需要延长画布
+  * @param 
+  * @returns
+  */
+  const checkIsNeedExtendCanvas = useCallback(() => {
+    maxBottomRow.current = getMaxBottomRow()
+
+    /** 延长*/
+    if (maxBottomRow.current > parentBlackInfo.current.bottomRow - ADD_ROW_BOUNDARY) {
+      dispatch(addContainerRows({
+        canvasId: parentId,
+        addNum: CANVAS_ADD_ROWS_NUM
+      }))
+    }
+  }, [getMaxBottomRow, parentId])
+
+
   /**
   * @description 进行resize
   * @param data {Object}
@@ -1202,8 +1248,6 @@ export const useResize = (props: UseResizeProps) => {
       direction: ReflowDirection
     }
   ) => {
-
-    // console.log(scrollParent.scrollTop,'sadasdsa');
 
     // console.time('aa')
     const { x, y, direction } = data
@@ -1446,6 +1490,9 @@ export const useResize = (props: UseResizeProps) => {
     setLastMoveDistance(x, y, direction)
     updateWidgetsPosition.current = getUpdateWidgets(reflowData.current)
     currentPosition.current = _.merge({}, originalPosition.current, updateWidgetsPosition.current);
+
+    /** 是否需要延长画布*/
+    checkIsNeedExtendCanvas()
   }, [
     topRow,
     parentRowSpace,
@@ -1463,7 +1510,8 @@ export const useResize = (props: UseResizeProps) => {
     setLastMoveDistance,
     setWidgetResizeDirection,
     setDirectionWidgetsReflowData,
-    checkIsProceedScroll
+    checkIsProceedScroll,
+    checkIsNeedExtendCanvas
   ])
 
 
@@ -1493,13 +1541,17 @@ export const useResize = (props: UseResizeProps) => {
         }
       }
     }
+
+    maxBottomRow.current = getMaxBottomRow()
     dispatch(resizeWidgetEndChunk({
       widgetId,
       resizeWidgetInfo: updateWidgetRowCol.current,
-      affectWidgetInfo: updateWidgetsPosition.current
+      affectWidgetInfo: updateWidgetsPosition.current,
+      canvasId: parentId,
+      maxBottomRow: maxBottomRow.current
     }))
 
-  }, [widgetId, canvasWidgets, parentColumnSpace])
+  }, [widgetId, canvasWidgets, parentColumnSpace, parentId,getMaxBottomRow])
 
   /** 拖拽时widget宽度*/
   const widgetWidth = useMemo(() => {

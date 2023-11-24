@@ -1,14 +1,14 @@
-import { clearReflowingWidgetsByIdChunk, setReflowingWidgets, setReflowingWidgetsOne, stopReflow, widgetsSpaceGraphSelector } from "@/store/slices/widgetReflowSlice";
+import { clearReflowingWidgetsByIdChunk, setReflowingWidgetsOne, widgetsSpaceGraphSelector } from "@/store/slices/widgetReflowSlice";
 import { useAppDispatch, useAppSelector } from "./redux";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { DraggingStatus, DraggingType, ReSizeDirection, ReflowDirection } from "@/enum/move";
 import { addContainerRows, addRowInfoSelector, addRowNumSelector, draggedOnSelector, draggingStatusSelector, draggingTypeSelector, endDragging, isDraggingSelector, setDraggedOn, setDraggingStatus, setLeaveContainerDirection } from "@/store/slices/dragResize";
-import { addNewWidgetChunk, dragEndChunk, dragExistWidgetChunk, getWidgetChildrenDetailSelector, getWidgetsSelector, updateWidgets } from "@/store/slices/canvasWidgets";
+import { dragEndChunk, getWidgetChildrenDetailSelector, getWidgetsSelector } from "@/store/slices/canvasWidgets";
 import { ReflowData } from "./useResize";
 import _ from "lodash";
 import { COLUM_NUM, MIN_HEIGHT_ROW, MIN_WIDTH_COLUMN } from "@/constant/widget";
 import { WidgetRowCols } from "@/interface/widget";
-import { CONTAINER_WIDGET_DRAG_ENTER_THRESHOLD, MAIN_CONTAINER_WIDGET_ID } from "@/constant/canvas";
+import { ADD_ROW_BOUNDARY, CANVAS_ADD_ROWS_NUM, CONTAINER_WIDGET_DRAG_ENTER_THRESHOLD, MAIN_CONTAINER_WIDGET_ID } from "@/constant/canvas";
 import { DirectionAttributes, Space } from "@/interface/space";
 import { getSelectedWidgets } from "@/selectors/widgetSelectors";
 
@@ -34,8 +34,6 @@ export const useDragging = (
 ) => {
   let _scrollParent = useRef<any>();
   _scrollParent.current = scrollParent
-
-
 
   /** 画布单位宽度大小*/
   const columnSpace = useRef(0)
@@ -146,12 +144,15 @@ export const useDragging = (
 
     parentBlackInfo.current = {
       topRow: 0,
-      bottomRow: canvasId === MAIN_CONTAINER_WIDGET_ID ? (parent?.bottomRow + addRowNum) / rowSpace.current : parent.containRows + addRowNum,
+      bottomRow: canvasId === MAIN_CONTAINER_WIDGET_ID ? Math.floor((parent?.bottomRow + addRowNum * 10) / rowSpace.current) : parent.containRows + addRowNum,
       leftColumn: 0,
       rightColumn: 64,
+      containVisibleHeight: parent?.bottomRow - parent?.topRow,
     }
   }, [addRowNum])
   setParentBlackInfo()
+
+  let maxBottomRow = useRef<number>(0)
 
   /** 是否是当前画布*/
   const isCurrentCanvas = useMemo(() => {
@@ -823,7 +824,7 @@ export const useDragging = (
   const checkIsMoveOutContainer = useCallback((draggingPosition: Space) => {
     let isTrue = false;
     for (let key in draggingPosition) {
-      if (key === 'topRow' && draggingPosition[key] >= parentBlackInfo.current.bottomRow) {
+      if (key === 'topRow' && draggingPosition[key] >= parentBlackInfo.current.containVisibleHeight + _scrollParent.current.scrollTop / rowSpace.current) {
         dispatch(setLeaveContainerDirection(DirectionAttributes.bottom))
         isTrue = true
       }
@@ -1031,6 +1032,7 @@ export const useDragging = (
       let item = canvasWidgetsChildrenDetailCopy.current[key];
       maxBottomRow = Math.max(maxBottomRow, item.bottomRow)
     }
+    maxBottomRow = Math.max(maxBottomRow, newWidgetPosition.current.bottomRow)
     return maxBottomRow
   }, [])
 
@@ -1041,11 +1043,13 @@ export const useDragging = (
   * @returns
   */
   const checkIsNeedExtendCanvas = useCallback(() => {
-    let maxBottomRow = getMaxBottomRow()
-    if (maxBottomRow > parentBlackInfo.current.bottomRow) {
+    maxBottomRow.current = getMaxBottomRow()
+
+    /** 延长*/
+    if (maxBottomRow.current > parentBlackInfo.current.bottomRow - ADD_ROW_BOUNDARY) {
       dispatch(addContainerRows({
         canvasId,
-        addNum: maxBottomRow - parentBlackInfo.current.bottomRow + 30
+        addNum: CANVAS_ADD_ROWS_NUM
       }))
     }
   }, [])
@@ -1097,9 +1101,9 @@ export const useDragging = (
 
       /** 检查是否超出容器*/
       checkIsMoveOutContainer(draggingPosition)
-      
+
       /** 是否需要延长画布*/
-      // checkIsNeedExtendCanvas()
+      checkIsNeedExtendCanvas()
     }
 
     lastMousePosition.current = mousePosition.current
@@ -1121,6 +1125,7 @@ export const useDragging = (
         rowSpace: rowSpace.current,
         columnSpace: columnSpace.current,
       },
+      maxBottomRow: maxBottomRow.current,
       affectWidgetInfo: getUpdateWidgets(reflowData.current),
       newParentId: canvasId,
       widgetId: selectedWidgets[0],
@@ -1184,6 +1189,7 @@ export const useDragging = (
     if (!isDragging) {
       setMousePosition(0, 0)
       setLastMousePosition(0, 0)
+      isMoveOutContainer.current = false
       reflowData.current = {}
     }
   }, [isDragging])

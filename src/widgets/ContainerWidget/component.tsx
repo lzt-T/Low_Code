@@ -25,9 +25,9 @@ const ContainerComponent = (props: ContainerComponentProps) => {
 
   let height = useMemo(() => {
     if (type === 'CANVAS_WIDGET') {
-      return (bottomRow - topRow + addRowNum) * parentRowSpace
+      return (bottomRow - topRow + addRowNum * 10) * parentRowSpace
     }
-    return (containRows + addRowNum)*parentRowSpace
+    return (containRows + addRowNum) * parentRowSpace
   }, [topRow, bottomRow, parentRowSpace, addRowNum, widgetId, containRows])
 
   return widgetId === MAIN_CONTAINER_WIDGET_ID ? (

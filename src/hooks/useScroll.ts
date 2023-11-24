@@ -2,7 +2,7 @@
 import { addContainerRows, isDraggingSelector, isResizingSelector } from '@/store/slices/dragResize';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useAppSelector, useAppDispatch } from './redux';
-import { ADD_ROW_BOUNDARY, CANVAS_ADD_ROWS_NUM, SCROLL_INTERVAL, SCROLL_SPEED } from '@/constant/canvas';
+import { SCROLL_INTERVAL, SCROLL_SPEED } from '@/constant/canvas';
 import { ScrollDirection } from '@/enum/move';
 
 export enum ScrollStatus {
@@ -46,14 +46,6 @@ export default function useScroll(props: UseScrollProps) {
     if (scrollParent.scrollTop === 0 && scrollDirection === ScrollDirection.TOP) {
       setScrollStatus(ScrollStatus.END)
       return
-    }
-
-    //自动滚动到底部时延长画布
-    if (scrollDirection === ScrollDirection.BOTTOM && scrollParent.scrollTop + scrollParent.clientHeight >= scrollParent.scrollHeight - ADD_ROW_BOUNDARY) {
-      dispatch(addContainerRows({
-        canvasId: canvasId,
-        addNum: CANVAS_ADD_ROWS_NUM
-      }))
     }
 
     if (scrollDirection === ScrollDirection.NONE) {

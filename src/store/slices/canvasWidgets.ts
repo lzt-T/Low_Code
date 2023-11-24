@@ -8,6 +8,7 @@ import { clearAddContainerRows, endDragging, setWidgetResizing } from "./dragRes
 import _ from "lodash"
 import { stopReflow } from "./widgetReflowSlice"
 import { DraggingType } from "@/enum/move"
+import { WidgetType } from "@/enum/widget"
 
 const initialState: {
   [propName: string]: {
@@ -29,7 +30,7 @@ const initialState: {
     widgetId: MAIN_CONTAINER_WIDGET_ID,
     topRow: 0,
     // bottomRow: CANVAS_DEFAULT_MIN_ROWS * GridDefaults.DEFAULT_GRID_ROW_HEIGHT, //380
-    bottomRow: 1400, //1400
+    bottomRow: 900, //1400
     renderMode: RenderModes.CANVAS,
     canExtend: true,
     widgetName: "MainContainer",
@@ -137,8 +138,8 @@ const initialState: {
     widgetId: 'CONTAINER_ONE',
     leftColumn: 2,
     rightColumn: 45,
-    topRow: 50,
-    bottomRow: 90,
+    topRow: 30,
+    bottomRow: 80,
     parentId: '0',
     widgetName: 'CONTAINER Widget',
     type: 'CONTAINER_WIDGET',
@@ -268,7 +269,7 @@ const canvasWidgetsSlice = createSlice({
     }) => {
       const { canvasId, addRow } = action.payload
       if (canvasId === MAIN_CONTAINER_WIDGET_ID) {
-        state[canvasId].bottomRow += addRow
+        state[canvasId].bottomRow += addRow * 10
       }
       state[canvasId].containRows += addRow
     },
@@ -435,12 +436,14 @@ export const dragEndChunk = (type: DraggingType, data: {
   },
   /** 受到影响的widget信息*/
   affectWidgetInfo: any,
+  /** 最大的bottomRow*/
+  maxBottomRow: number,
   newParentId?: string,
   widgetId?: string,
 }) => {
   return (dispatch: any, getState: any) => {
     const { position, parentUnit, newParentId, widgetId,
-      affectWidgetInfo, isCanPlaced
+      affectWidgetInfo, isCanPlaced, maxBottomRow
     } = data
 
     const state = getState()
@@ -466,15 +469,44 @@ export const dragEndChunk = (type: DraggingType, data: {
 
       //是否需要为画布添加延长的row
       let addRowInfo = state.ui.dragResize.addRowInfo
-      if (addRowInfo.rowNum != 0) {
+      let condition: any = {
+        [WidgetType.CANVAS_WIDGET]: (widgetInfo: any) => {
+          return {
+            minBottomRow: 90,
+            bottomRow: widgetInfo.bottomRow / 10,
+          }
+        },
+        [WidgetType.CONTAINER_WIDGET]: (widgetInfo: any) => {
+          return {
+            minBottomRow: widgetInfo.bottomRow - widgetInfo.topRow,
+            bottomRow: widgetInfo.containRows,
+          }
+        }
+      }
+
+
+      let resultAddNum = 0;
+      let draggedOn = state.ui.dragResize.dragDetails.draggedOn
+      let canvasInfo = state.canvasWidgets[draggedOn];
+      let { minBottomRow, bottomRow } = condition[canvasInfo.type](canvasInfo);
+      if (maxBottomRow > bottomRow) {
+        resultAddNum = addRowInfo.rowNum
+      } else {
+        if (maxBottomRow < minBottomRow) {
+          resultAddNum = minBottomRow - bottomRow
+        } else {
+          resultAddNum = maxBottomRow - bottomRow + 5
+        }
+      }
+
+      if (resultAddNum != 0) {
         dispatch(canvasWidgetsSlice.actions.addContainerBottomRow({
-          canvasId: addRowInfo.widgetId,
-          addRow: addRowInfo.rowNum,
+          canvasId: draggedOn,
+          addRow: resultAddNum,
         }))
         dispatch(clearAddContainerRows())
       }
     }
-
 
     dispatch(stopReflow())
     dispatch(endDragging())
@@ -489,11 +521,15 @@ export const resizeWidgetEndChunk = (
     resizeWidgetInfo: any,
     /** 受到影响的widget信息*/
     affectWidgetInfo: any,
+    /** 最大的bottomRow*/
+    maxBottomRow: number,
+    /** 所在画布id*/
+    canvasId: string,
   }
 ) => {
   return (dispatch: any, getState: any) => {
     const state = getState()
-    const { widgetId, resizeWidgetInfo, affectWidgetInfo } = data
+    const { widgetId, resizeWidgetInfo, affectWidgetInfo, maxBottomRow,canvasId } = data
     dispatch(stopReflow())
     dispatch(setWidgetResizing({ isResizing: false }))
 
@@ -507,10 +543,39 @@ export const resizeWidgetEndChunk = (
 
     //是否需要为画布添加延长的row
     let addRowInfo = state.ui.dragResize.addRowInfo
-    if (addRowInfo.rowNum != 0) {
+    let condition: any = {
+      [WidgetType.CANVAS_WIDGET]: (widgetInfo: any) => {
+        return {
+          minBottomRow: 90,
+          bottomRow: widgetInfo.bottomRow / 10,
+        }
+      },
+      [WidgetType.CONTAINER_WIDGET]: (widgetInfo: any) => {
+        return {
+          minBottomRow: widgetInfo.bottomRow - widgetInfo.topRow,
+          bottomRow: widgetInfo.containRows,
+        }
+      }
+    }
+
+    let resultAddNum = 0;
+    let canvasInfo = state.canvasWidgets[canvasId];
+    let { minBottomRow, bottomRow } = condition[canvasInfo.type](canvasInfo);
+
+    if (maxBottomRow > bottomRow) {
+      resultAddNum = addRowInfo.rowNum
+    } else {
+      if (maxBottomRow < minBottomRow) {
+        resultAddNum = minBottomRow - bottomRow
+      } else {
+        resultAddNum = maxBottomRow - bottomRow + 5
+      }
+    }
+
+    if (resultAddNum != 0) {
       dispatch(canvasWidgetsSlice.actions.addContainerBottomRow({
-        canvasId: addRowInfo.widgetId,
-        addRow: addRowInfo.rowNum,
+        canvasId,
+        addRow: resultAddNum,
       }))
       dispatch(clearAddContainerRows())
     }
